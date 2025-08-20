@@ -1,7 +1,7 @@
-from src.base_agent import BaseAgent
+from google.adk import Agent
 
 
-class Skeptic(BaseAgent):
+class Skeptic(Agent):
     """懷疑者代理類別
 
     角色任務：

@@ -1,7 +1,7 @@
-from src.base_agent import BaseAgent
+from google.adk import Agent
 
 
-class Curator(BaseAgent):
+class Curator(Agent):
     """策展者代理類別
 
     角色任務：

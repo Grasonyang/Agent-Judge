@@ -1,7 +1,7 @@
-from src.base_agent import BaseAgent
+from google.adk import Agent
 
 
-class Disrupter(BaseAgent):
+class Disrupter(Agent):
     """破壞者代理類別
 
     角色任務：
