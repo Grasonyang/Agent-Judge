@@ -63,6 +63,9 @@ graph TD
 - 每個 Agent 有限的注意力資源，避免無限迴圈
 - Arbiter 結合辯論與傳播數據做出終止判斷
 
+## ADK 與本專案的整合
+Google 的 Agent Development Kit（ADK）提供工具整合、跨模型支援、回呼與記憶機制等多代理功能，與本專案的可插拔 Agent 架構相輔相成，可協助快速擴充與管理多 Agent 流程。
+
 ## 快速上手
 1. 取得程式碼並建立虛擬環境：
    ```bash
@@ -76,7 +79,8 @@ graph TD
    pip install google-cloud-sdk
    pip install google-adk
    ```
-   - `google-adk`：用於與 Google Android Development Kit 互動，協助整合相關硬體功能
+   - `google-adk`：Google Agent Development Kit（非 Android Development Kit），提供工具整合、跨模型支援、回呼與記憶機制等多代理功能，與本專案的可插拔 Agent 架構相輔相成
+   - [官方教學](https://google.github.io/adk-docs/get-started/)：快速了解 ADK 的使用方式
 3. 執行測試：
    ```bash
    python -m pytest
