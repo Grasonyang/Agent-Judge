@@ -74,7 +74,9 @@ graph TD
 2. 安裝依賴（需先安裝 Google SDK）：
    ```bash
    pip install google-cloud-sdk
+   pip install google-adk
    ```
+   - `google-adk`：用於與 Google Android Development Kit 互動，協助整合相關硬體功能
 3. 執行測試：
    ```bash
    python -m pytest
