@@ -1,7 +1,7 @@
-from src.base_agent import BaseAgent
+from google.adk import Agent
 
 
-class Masses(BaseAgent):
+class Masses(Agent):
     """群眾代理類別
 
     角色任務：

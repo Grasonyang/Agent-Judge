@@ -1,7 +1,7 @@
-from src.base_agent import BaseAgent
+from google.adk import Agent
 
 
-class Advocate(BaseAgent):
+class Advocate(Agent):
     """倡議者代理類別
 
     角色任務：

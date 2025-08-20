@@ -1,7 +1,7 @@
-from src.base_agent import BaseAgent
+from google.adk import Agent
 
 
-class Arbiter(BaseAgent):
+class Arbiter(Agent):
     """仲裁者代理類別
 
     角色任務：
