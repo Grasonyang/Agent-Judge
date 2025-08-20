@@ -84,7 +84,7 @@ Google 的 Agent Development Kit（ADK）提供工具整合、跨模型支援、
 3. 複製環境設定範例並填入實際值：
    ```bash
    cp .env.example .env
-   # 編輯 .env 並填入 GEMINI_API_KEY、GOOGLE_PROJECT_ID 等變數
+   # 編輯 .env 並填入相對的環境(google api、project key要設置成secret)
    ```
 4. 執行測試：
    ```bash
