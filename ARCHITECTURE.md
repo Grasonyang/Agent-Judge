@@ -297,6 +297,31 @@ const client = new GeminiClient({
 
 此設計允許日後替換為其他 LLM 供應商，僅需實作相容的 Client 介面並註冊於 Pipeline。
 
+## ADK 整合
+ADK（Agent Development Kit）為 Pipeline 提供標準化的工具管理與狀態維護機制，便於擴充各式 Agent 功能。
+
+### Tool Registry
+Pipeline 透過 Tool Registry 註冊與查詢可用工具，所有工具以唯一名稱對應實作，執行階段可動態載入或更換。
+
+### 記憶體管理
+ADK 提供記憶體管理器以統一處理短期暫存與長期紀錄。Pipeline 在呼叫 Agent 前先讀取相關片段，Agent 完成後再將更新內容寫回，確保上下文連貫。
+
+### Callback 流程
+Pipeline 為每個 Agent 註冊回呼函式，ADK 在工具執行或記憶體變動時觸發 Callback，讓 Pipeline 能即時獲知進度、錯誤或中間結果。
+
+```mermaid
+sequenceDiagram
+    participant P as Pipeline
+    participant R as 工具註冊器
+    participant M as 記憶體管理器
+    participant A as Agent
+    P->>R: 查詢工具
+    P->>M: 載入記憶
+    P->>A: 執行任務
+    A-->>P: Callback 回報
+    P->>M: 更新記憶
+```
+
 ## A2A 串聯設計與迴圈控制
 1. **訊息標準化**：Pipeline 將每則訊息包裝為含 `origin`、`target`、`content`、`attention_cost` 與 `trace_id` 的結構，確保後續 Agent 能正確解析。
 2. **流程圖驅動**：根據預先定義的流程圖，Pipeline 決定下一個 Agent，並將 `trace_id` 寫入傳播軌跡紀錄。
