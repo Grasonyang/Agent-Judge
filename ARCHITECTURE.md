@@ -18,25 +18,31 @@ README.md 已詳細定義系統中的核心腳色，下列為其概要：
 - **謠言製造者 Agent（The Disrupter）**：注入迷惑性訊息以測試系統韌性。
 
 ## 各 Agent 模組介面與資料結構範例
-以下示範主要 Agent 的輸入、輸出資料型別與呼叫順序，所有範例皆使用 TypeScript 風格並以繁體中文註解。
+以下示範主要 Agent 的輸入、輸出資料型別與呼叫順序，所有範例皆使用 Python 風格並以繁體中文註解。
 
 ### The Curator
 負責將原始文章轉為實體與情緒資訊。
 
 #### 介面
-```typescript
-interface CuratorInput {
-  rawText: string // 原始文章內容
-}
 
-interface CuratorOutput {
-  entities: string[] // 萃取的實體列表
-  sentiment: string // 情緒極性
-}
+Python 範例
+```python
+from dataclasses import dataclass
+from typing import List
 
-interface Curator {
-  process(input: CuratorInput): Promise<CuratorOutput> // 處理輸入並回傳結果
-}
+@dataclass
+class CuratorInput:
+    raw_text: str  # 原始文章內容
+
+@dataclass
+class CuratorOutput:
+    entities: List[str]  # 萃取的實體列表
+    sentiment: str  # 情緒極性
+
+class Curator:
+    async def process(self, input: CuratorInput) -> CuratorOutput:
+        """處理輸入並回傳結果"""
+        ...
 ```
 
 #### 資料結構範例
@@ -63,19 +69,25 @@ sequenceDiagram
 為新聞內容提供佐證與辯護。
 
 #### 介面
-```typescript
-interface AdvocateInput {
-  facts: string[] // 已知事實
-  article: string // 文章片段
-}
 
-interface AdvocateOutput {
-  arguments: string[] // 支持論點
-}
+Python 範例
+```python
+from dataclasses import dataclass
+from typing import List
 
-interface Advocate {
-  defend(input: AdvocateInput): Promise<AdvocateOutput> // 生成辯護內容
-}
+@dataclass
+class AdvocateInput:
+    facts: List[str]  # 已知事實
+    article: str  # 文章片段
+
+@dataclass
+class AdvocateOutput:
+    arguments: List[str]  # 支持論點
+
+class Advocate:
+    async def defend(self, input: AdvocateInput) -> AdvocateOutput:
+        """生成辯護內容"""
+        ...
 ```
 
 #### 資料結構範例
@@ -105,18 +117,24 @@ sequenceDiagram
 負責檢驗矛盾與錯誤。
 
 #### 介面
-```typescript
-interface SkepticInput {
-  claims: string[] // 待檢驗的論點
-}
 
-interface SkepticOutput {
-  challenges: string[] // 挑戰與質疑
-}
+Python 範例
+```python
+from dataclasses import dataclass
+from typing import List
 
-interface Skeptic {
-  question(input: SkepticInput): Promise<SkepticOutput> // 提出反駁
-}
+@dataclass
+class SkepticInput:
+    claims: List[str]  # 待檢驗的論點
+
+@dataclass
+class SkepticOutput:
+    challenges: List[str]  # 挑戰與質疑
+
+class Skeptic:
+    async def question(self, input: SkepticInput) -> SkepticOutput:
+        """提出反駁"""
+        ...
 ```
 
 #### 資料結構範例
@@ -143,20 +161,26 @@ sequenceDiagram
 根據辯論與傳播數據進行評分。
 
 #### 介面
-```typescript
-interface ArbiterInput {
-  debates: string[] // 辯論內容
-  traces: string[] // 傳播軌跡
-}
 
-interface ArbiterOutput {
-  score: number // 客觀評分
-  verdict: string // 裁決結論
-}
+Python 範例
+```python
+from dataclasses import dataclass
+from typing import List
 
-interface Arbiter {
-  judge(input: ArbiterInput): Promise<ArbiterOutput> // 產生評分與裁決
-}
+@dataclass
+class ArbiterInput:
+    debates: List[str]  # 辯論內容
+    traces: List[str]  # 傳播軌跡
+
+@dataclass
+class ArbiterOutput:
+    score: float  # 客觀評分
+    verdict: str  # 裁決結論
+
+class Arbiter:
+    async def judge(self, input: ArbiterInput) -> ArbiterOutput:
+        """產生評分與裁決"""
+        ...
 ```
 
 #### 資料結構範例
@@ -186,19 +210,25 @@ sequenceDiagram
 模擬群眾的資訊傳播行為。
 
 #### 介面
-```typescript
-interface MassesInput {
-  message: string // 需要擴散的訊息
-  demographics: string[] // 群眾族群
-}
 
-interface MassesOutput {
-  spread: Record<string, number> // 各族群的傳播率
-}
+Python 範例
+```python
+from dataclasses import dataclass
+from typing import Dict, List
 
-interface Masses {
-  simulate(input: MassesInput): Promise<MassesOutput> // 模擬傳播
-}
+@dataclass
+class MassesInput:
+    message: str  # 需要擴散的訊息
+    demographics: List[str]  # 群眾族群
+
+@dataclass
+class MassesOutput:
+    spread: Dict[str, float]  # 各族群的傳播率
+
+class Masses:
+    async def simulate(self, input: MassesInput) -> MassesOutput:
+        """模擬傳播"""
+        ...
 ```
 
 #### 資料結構範例
@@ -228,18 +258,23 @@ sequenceDiagram
 模擬謠言或迷惑性訊息。
 
 #### 介面
-```typescript
-interface DisrupterInput {
-  topic: string // 目標議題
-}
 
-interface DisrupterOutput {
-  rumor: string // 生成的謠言
-}
+Python 範例
+```python
+from dataclasses import dataclass
 
-interface Disrupter {
-  inject(input: DisrupterInput): Promise<DisrupterOutput> // 注入訊息
-}
+@dataclass
+class DisrupterInput:
+    topic: str  # 目標議題
+
+@dataclass
+class DisrupterOutput:
+    rumor: str  # 生成的謠言
+
+class Disrupter:
+    async def inject(self, input: DisrupterInput) -> DisrupterOutput:
+        """注入訊息"""
+        ...
 ```
 
 #### 資料結構範例
@@ -288,11 +323,14 @@ sequenceDiagram
 - **權杖輪替**：Pipeline 可定期輪替 `GEMINI_API_KEY`，並於失效時自動刷新。
 - **多專案支援**：透過設定 `projectId`，可動態切換 Google Cloud 專案以分散配額。
 
-```typescript
-const client = new GeminiClient({
-  apiKey: process.env.GEMINI_API_KEY!, // 從環境變數讀取權杖
-  projectId: process.env.GOOGLE_PROJECT_ID // 指定雲端專案
-})
+Python 範例
+```python
+import os
+
+client = GeminiClient(
+    api_key=os.environ["GEMINI_API_KEY"],  # 從環境變數讀取權杖
+    project_id=os.environ.get("GOOGLE_PROJECT_ID")  # 指定雲端專案
+)
 ```
 
 此設計允許日後替換為其他 LLM 供應商，僅需實作相容的 Client 介面並註冊於 Pipeline。
