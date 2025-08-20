@@ -8,6 +8,47 @@
 - **Agent 管線 (Pipeline)**：負責 Agent 與 Agent 之間的 A2A 串聯與訊息傳遞。
 - **結果匯整模組**：收集各 Agent 的輸出，生成最終報告。
 
+## BaseAgent 設計
+BaseAgent 為所有 Agent 的抽象基底，統一定義欄位與執行介面。
+
+### 共同欄位
+- `name`：代理名稱
+- `attentionBudget`：注意力資源上限
+- `description?`：角色說明（選填）
+
+### run() 介面
+每個 Agent 需實作 `run()` 以處理訊息並回傳結果。
+
+```typescript
+interface BaseAgent {
+  name: string // 代理名稱
+  attentionBudget: number // 注意力預算
+  run(msg: Message): Promise<Message> // 執行後回傳訊息
+}
+```
+
+### Pipeline 與 BaseAgent 的互動
+Pipeline 依據訊息的 `target` 找到對應的 Agent 實例，呼叫其 `run()` 完成處理，再交給下一個節點。
+
+```mermaid
+classDiagram
+    class Pipeline {
+        +dispatch(msg: Message): Promise<void>
+    }
+    class BaseAgent {
+        +string name
+        +number attentionBudget
+        +run(msg: Message): Promise<Message>
+    }
+    Pipeline --> BaseAgent : 呼叫 run()
+    BaseAgent <|-- Curator
+    BaseAgent <|-- Advocate
+    BaseAgent <|-- Skeptic
+    BaseAgent <|-- Arbiter
+    BaseAgent <|-- Masses
+    BaseAgent <|-- Disrupter
+```
+
 ## Agent 角色與責任
 README.md 已詳細定義系統中的核心腳色，下列為其概要：
 - **資料預處理 Agent（The Curator）**：萃取實體與情緒，將原始資訊轉為結構化資料。
