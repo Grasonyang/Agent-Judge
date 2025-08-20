@@ -19,12 +19,24 @@ BaseAgent 為所有 Agent 的抽象基底，統一定義欄位與執行介面。
 ### run() 介面
 每個 Agent 需實作 `run()` 以處理訊息並回傳結果。
 
-```typescript
-interface BaseAgent {
-  name: string // 代理名稱
-  attentionBudget: number // 注意力預算
-  run(msg: Message): Promise<Message> // 執行後回傳訊息
-}
+Python 範例
+```python
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+@dataclass
+class Message:
+    content: str  # 訊息內容
+
+@dataclass
+class BaseAgent(ABC):
+    name: str  # 代理名稱
+    attention_budget: int  # 注意力預算
+
+    @abstractmethod
+    async def run(self, msg: Message) -> Message:
+        """執行後回傳訊息"""
+        ...
 ```
 
 ### Pipeline 與 BaseAgent 的互動
