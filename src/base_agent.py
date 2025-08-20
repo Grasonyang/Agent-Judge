@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -12,6 +13,14 @@ class BaseAgent(ABC):
     attention_budget: int
 
     @abstractmethod
-    def run(self) -> None:
-        """執行代理的主要流程，子類別須實作此方法"""
+    def run(self, data: Any | None = None) -> Any:
+        """執行代理的主要流程
+
+        參數:
+            data (Any | None):
+                執行所需的輸入資料，型別與結構由子類別自行定義。
+
+        回傳:
+            Any: 依子類別設計回傳相應的結果資料。
+        """
         raise NotImplementedError
