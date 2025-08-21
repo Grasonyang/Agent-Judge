@@ -1,3 +1,6 @@
 google-adk
 google-generativeai
 python-dotenv
+rouge-score
+pandas
+tabulate
