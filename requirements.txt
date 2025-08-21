@@ -4,4 +4,4 @@ python-dotenv
 rouge-score
 pandas
 tabulate
-pytest>=8.2.0
+pytest
