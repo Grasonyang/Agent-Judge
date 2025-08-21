@@ -15,47 +15,58 @@
 #### **II. 架構總覽圖 (Architecture Overview)**
 
 ```mermaid
-graph TD
-    subgraph "階段一：資訊輸入與擴增 (Ingestion & Enrichment)"
-        A[外部新聞輸入] --> B{The Curator / 資料預處理};
-        B --> C[結構化知識庫 / Knowledge Base];
-        C --> D{The Historian / 歷史脈絡探勘};
-        D --> C;
-    end
+---
+config:
+  layout: dagre
+---
+flowchart LR
+ subgraph subGraph0["階段一：資訊輸入與擴增 (Ingestion & Enrichment)"]
+        B{"The Curator / 資料預處理"}
+        A["外部新聞輸入"]
+        C["結構化知識庫 / Knowledge Base"]
+        D{"The Historian / 歷史脈絡探勘"}
+  end
+ subgraph subGraph1["A. 核心辯論場 (Debate Arena)"]
+        M{"The Moderator / 主持人"}
+        P["The Advocate / 正方"]
+        S["The Skeptic / 反方"]
+        DA@{ label: "The Devil's Advocate / 極端質疑者" }
+  end
+ subgraph subGraph2["B. 社會傳播模擬 (Social Simulation)"]
+        EC(("The Echo Chamber / 同溫層網路"))
+        I(("The Influencer / 意見領袖"))
+        Disruptor["The Disrupter / 謠言製造者"]
+  end
+ subgraph subGraph3["階段二：平行模擬 (Parallel Simulation)"]
+        subGraph1
+        subGraph2
+  end
+ subgraph subGraph4["階段三：裁決與整合 (Adjudication & Synthesis)"]
+        J{"The Jury / 陪審團"}
+        Debate_Log["辯論日誌"]
+        Social_Log["傳播數據"]
+        KS{"The Synthesizer / 知識整合者"}
+  end
+ subgraph subGraph5["階段四：最終產出 (Final Output)"]
+        Final_Report["深度分析報告"]
+  end
+    A --> B & B
+    B --> C
+    C --> D & M & EC & M
+    D --> C
+    M --> P & S & DA
+    P <--> S
+    S <--> DA
+    DA <--> P
+    EC -- 放大 --> I
+    Disruptor -- 注入假訊息 --> EC
+    Disruptor -- 注入假證據 --> S
+    Debate_Log --> J & KS
+    Social_Log --> J & KS
+    J -- 評分 --> KS
+    KS --> Final_Report
+    DA@{ shape: rect}
 
-    subgraph "階段二：平行模擬 (Parallel Simulation)"
-        subgraph "A. 核心辯論場 (Debate Arena)"
-            C --> M{The Moderator / 主持人};
-            M --> P[The Advocate / 正方];
-            M --> S[The Skeptic / 反方];
-            M --> DA[The Devil's Advocate / 極端質疑者];
-            P <--> S;
-            S <--> DA;
-            DA <--> P;
-        end
-
-        subgraph "B. 社會傳播模擬 (Social Simulation)"
-            C --> EC((The Echo Chamber / 同溫層網路));
-            EC -- 放大 --> I((The Influencer / 意見領袖));
-            Disruptor[The Disrupter / 謠言製造者] -- 注入假訊息 --> EC;
-            Disruptor -- 注入假證據 --> S;
-        end
-    end
-
-    subgraph "階段三：裁決與整合 (Adjudication & Synthesis)"
-        Debate_Log[辯論日誌] --> J{The Jury / 陪審團};
-        Social_Log[傳播數據] --> J;
-        Debate_Log --> KS{The Synthesizer / 知識整合者};
-        Social_Log --> KS;
-        J -- 評分 --> KS;
-    end
-
-    subgraph "階段四：最終產出 (Final Output)"
-        KS --> Final_Report[深度分析報告];
-    end
-
-    A --> B;
-    C --> M;
 ```
 
 ---
