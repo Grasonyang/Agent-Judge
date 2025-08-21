@@ -5,97 +5,82 @@
 ## 模組概觀
 - **資料預處理模組**：將外部輸入轉換為結構化資料，供後續 Agent 使用。
 - **Gemini 用戶端 (GeminiClient)**：透過 Google SDK 與 Gemini API 互動，產生推論結果。
-- **Agent 管線 (Pipeline)**：負責 Agent 與 Agent 之間的 A2A 串聯與訊息傳遞。
+- **Agent 管線 (Pipeline)**：負責 ADK 代理之間的 A2A 串聯與訊息傳遞。
 - **結果匯整模組**：收集各 Agent 的輸出，生成最終報告。
 
-## BaseAgent 設計
-BaseAgent 為所有 Agent 的抽象基底，統一定義欄位與執行介面。
-
-### 共同欄位
-- `name`：代理名稱
-- `attentionBudget`：注意力資源上限
-- `description?`：角色說明（選填）
-
-### run() 介面
-每個 Agent 需實作 `run()` 以處理訊息並回傳結果。
+## ADK Agent 與共用機制
+所有代理直接繼承 [ADK](https://github.com/google-deepmind/google-agents) 提供的 `Agent` 或 `LlmAgent` 類別，無須自訂 `BaseAgent`。若多個代理需要共用行為，可利用 ADK 的事件與工具機制協調，例如在代理中註冊工具並透過事件回呼取得執行紀錄。
 
 Python 範例
 ```python
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from google.adk.agents.llm_agent import LlmAgent
+from google.adk.tools import google_search
 
-@dataclass
-class Message:
-    content: str  # 訊息內容
+class NewsBot(LlmAgent):
+    """示範整合工具與事件的 LLM 代理"""
 
-@dataclass
-class BaseAgent(ABC):
-    name: str  # 代理名稱
-    attention_budget: int  # 注意力預算
-
-    @abstractmethod
-    async def run(self, msg: Message) -> Message:
-        """執行後回傳訊息"""
-        ...
+    def __init__(self, **kwargs):
+        super().__init__(tools=[google_search], **kwargs)
 ```
 
-### Pipeline 與 BaseAgent 的互動
-Pipeline 依據訊息的 `target` 找到對應的 Agent 實例，呼叫其 `run()` 完成處理，再交給下一個節點。
+### Pipeline 與 ADK Agent 的互動
+Pipeline 依據訊息的 `target` 找到對應的代理實例，呼叫其 `run()` 完成處理，再交給下一個節點。所有代理皆符合 ADK 的介面規範，可共享事件與工具。
 
 ```mermaid
 classDiagram
     class Pipeline {
         +dispatch(msg: Message): Promise<void>
     }
-    class BaseAgent {
+    class Agent {
         +string name
         +number attentionBudget
         +run(msg: Message): Promise<Message>
     }
-    Pipeline --> BaseAgent : 呼叫 run()
-    BaseAgent <|-- Curator
-    BaseAgent <|-- Advocate
-    BaseAgent <|-- Skeptic
-    BaseAgent <|-- Arbiter
-    BaseAgent <|-- Masses
-    BaseAgent <|-- Disrupter
+    class LlmAgent {
+        +chat(message: str): str
+    }
+    Pipeline --> Agent : 呼叫 run()
+    Agent <|-- LlmAgent
+    Agent <|-- Curator
+    Agent <|-- Advocate
+    Agent <|-- Skeptic
+    Agent <|-- Arbiter
+    Agent <|-- Masses
+    Agent <|-- Disrupter
 ```
 
 ## Agent 角色與責任
 README.md 已詳細定義系統中的核心腳色，下列為其概要：
-- **資料預處理 Agent（The Curator）**：萃取實體與情緒，將原始資訊轉為結構化資料。
-- **正方 Agent（The Advocate）**：為新聞內容提供佐證與辯護。
-- **反方 Agent（The Skeptic）**：質疑新聞內容，搜尋矛盾與錯誤。
-- **陪審團 Agent（The Arbiter）**：根據證據與傳播數據進行客觀評分。
-- **群眾 Agent（The Masses）**：模擬不同社會群體的資訊傳播行為。
-- **謠言製造者 Agent（The Disrupter）**：注入迷惑性訊息以測試系統韌性。
+- **資料預處理 Agent（The Curator）**：整理多筆文字資料，去重並輸出摘要。
+- **正方 Agent（The Advocate）**：為提案生成正面論述。
+- **反方 Agent（The Skeptic）**：質疑主張，搜尋矛盾與錯誤。
+- **陪審團 Agent（The Arbiter）**：根據多方意見進行多數決評分。
+- **群眾 Agent（The Masses）**：模擬不同社會群體的回應行為。
+- **破壞者 Agent（The Disrupter）**：挑戰現狀以測試系統韌性。
 
 ## 各 Agent 模組介面與資料結構範例
 以下示範主要 Agent 的輸入、輸出資料型別與呼叫順序，所有範例皆使用 Python 風格並以繁體中文註解。
 
 ### The Curator
-負責將原始文章轉為實體與情緒資訊。
+負責將多筆文字資料去重並條列整理，提供清晰摘要。
 
 #### 介面
 
 Python 範例
 ```python
-from dataclasses import dataclass
-from typing import List
+from google.adk import Agent
 
-@dataclass
-class CuratorInput:
-    raw_text: str  # 原始文章內容
 
-@dataclass
-class CuratorOutput:
-    entities: List[str]  # 萃取的實體列表
-    sentiment: str  # 情緒極性
+class Curator(Agent):
+    """策展者代理，去重並整理文字資訊"""
 
-class Curator:
-    async def process(self, input: CuratorInput) -> CuratorOutput:
-        """處理輸入並回傳結果"""
-        ...
+    def run(self, materials: list[str]) -> list[str]:
+        unique_items: list[str] = []
+        for item in materials:
+            cleaned = item.strip()
+            if cleaned and cleaned not in unique_items:
+                unique_items.append(cleaned)
+        return unique_items
 ```
 
 #### 資料結構範例
@@ -103,7 +88,7 @@ class Curator:
 {
   "origin": "User",
   "target": "The Curator",
-  "content": "新聞全文", // 原始輸入文字
+  "content": ["資訊1", "資訊2"], // 待整理的文字列表
   "attention_cost": 1,
   "trace_id": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -119,40 +104,29 @@ sequenceDiagram
 ```
 
 ### The Advocate
-為新聞內容提供佐證與辯護。
+為提案生成正面論述，說服受眾接受該提案。
 
 #### 介面
 
 Python 範例
 ```python
-from dataclasses import dataclass
-from typing import List
+from google.adk import Agent
 
-@dataclass
-class AdvocateInput:
-    facts: List[str]  # 已知事實
-    article: str  # 文章片段
 
-@dataclass
-class AdvocateOutput:
-    arguments: List[str]  # 支持論點
+class Advocate(Agent):
+    """倡議者代理，產生支持陳述"""
 
-class Advocate:
-    async def defend(self, input: AdvocateInput) -> AdvocateOutput:
-        """生成辯護內容"""
-        ...
+    def run(self, proposal: str) -> str:
+        return f"我們應該推動{proposal}，它將帶來顯著的正面影響。"
 ```
 
 #### 資料結構範例
 ```jsonc
 {
-  "origin": "The Curator",
+  "origin": "Pipeline",
   "target": "The Advocate",
-  "content": {
-    "facts": ["實體1", "實體2"], // 前置事實
-    "article": "文章片段"
-  },
-  "attention_cost": 2,
+  "content": "提案內容", // 需要倡議的提案
+  "attention_cost": 1,
   "trace_id": "123e4567-e89b-12d3-a456-426614174000"
 }
 ```
@@ -167,27 +141,20 @@ sequenceDiagram
 ```
 
 ### The Skeptic
-負責檢驗矛盾與錯誤。
+針對主張提出質疑，檢驗論點的完整性與可靠度。
 
 #### 介面
 
 Python 範例
 ```python
-from dataclasses import dataclass
-from typing import List
+from google.adk import Agent
 
-@dataclass
-class SkepticInput:
-    claims: List[str]  # 待檢驗的論點
 
-@dataclass
-class SkepticOutput:
-    challenges: List[str]  # 挑戰與質疑
+class Skeptic(Agent):
+    """懷疑者代理，提出關鍵質疑"""
 
-class Skeptic:
-    async def question(self, input: SkepticInput) -> SkepticOutput:
-        """提出反駁"""
-        ...
+    def run(self, claim: str) -> str:
+        return f"我們有足夠證據支持『{claim}』嗎？"
 ```
 
 #### 資料結構範例
@@ -195,7 +162,7 @@ class Skeptic:
 {
   "origin": "The Advocate",
   "target": "The Skeptic",
-  "content": { "claims": ["論點A"] }, // 需要檢驗的主張
+  "content": "論點A", // 需要檢驗的主張
   "attention_cost": 2,
   "trace_id": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -211,29 +178,23 @@ sequenceDiagram
 ```
 
 ### The Arbiter
-根據辯論與傳播數據進行評分。
+接收多方意見並計算多數決結果，輸出最終裁決。
 
 #### 介面
 
 Python 範例
 ```python
-from dataclasses import dataclass
-from typing import List
+from google.adk import Agent
 
-@dataclass
-class ArbiterInput:
-    debates: List[str]  # 辯論內容
-    traces: List[str]  # 傳播軌跡
 
-@dataclass
-class ArbiterOutput:
-    score: float  # 客觀評分
-    verdict: str  # 裁決結論
+class Arbiter(Agent):
+    """仲裁者代理，計算多數決"""
 
-class Arbiter:
-    async def judge(self, input: ArbiterInput) -> ArbiterOutput:
-        """產生評分與裁決"""
-        ...
+    def run(self, opinions: list[str]) -> str:
+        if not opinions:
+            return "無可裁決意見"
+        decision = max(set(opinions), key=opinions.count)
+        return f"裁決結果：{decision}"
 ```
 
 #### 資料結構範例
@@ -241,10 +202,7 @@ class Arbiter:
 {
   "origin": "The Skeptic",
   "target": "The Arbiter",
-  "content": {
-    "debates": ["正反意見"],
-    "traces": ["trace_id"]
-  },
+  "content": ["贊成", "反對"], // 各方意見
   "attention_cost": 3,
   "trace_id": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -260,28 +218,20 @@ sequenceDiagram
 ```
 
 ### The Masses
-模擬群眾的資訊傳播行為。
+模擬多數群體對議題的回應，產生具代表性的集體觀點。
 
 #### 介面
 
 Python 範例
 ```python
-from dataclasses import dataclass
-from typing import Dict, List
+from google.adk import Agent
 
-@dataclass
-class MassesInput:
-    message: str  # 需要擴散的訊息
-    demographics: List[str]  # 群眾族群
 
-@dataclass
-class MassesOutput:
-    spread: Dict[str, float]  # 各族群的傳播率
+class Masses(Agent):
+    """群眾代理，產生模擬回應"""
 
-class Masses:
-    async def simulate(self, input: MassesInput) -> MassesOutput:
-        """模擬傳播"""
-        ...
+    def run(self, question: str, size: int = 3) -> list[str]:
+        return [f"群眾{i + 1}：對『{question}』的看法" for i in range(size)]
 ```
 
 #### 資料結構範例
@@ -289,10 +239,7 @@ class Masses:
 {
   "origin": "The Arbiter",
   "target": "The Masses",
-  "content": {
-    "message": "評分結果",
-    "demographics": ["族群A", "族群B"]
-  },
+  "content": { "question": "議題描述", "size": 3 }, // 要詢問的問題與模擬人數
   "attention_cost": 1,
   "trace_id": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -308,26 +255,20 @@ sequenceDiagram
 ```
 
 ### The Disrupter
-模擬謠言或迷惑性訊息。
+針對既定假設提出反向觀點，促進創新與反思。
 
 #### 介面
 
 Python 範例
 ```python
-from dataclasses import dataclass
+from google.adk import Agent
 
-@dataclass
-class DisrupterInput:
-    topic: str  # 目標議題
 
-@dataclass
-class DisrupterOutput:
-    rumor: str  # 生成的謠言
+class Disrupter(Agent):
+    """破壞者代理，挑戰現狀"""
 
-class Disrupter:
-    async def inject(self, input: DisrupterInput) -> DisrupterOutput:
-        """注入訊息"""
-        ...
+    def run(self, status_quo: str) -> str:
+        return f"如果我們不再遵循『{status_quo}』，會產生什麼新可能？"
 ```
 
 #### 資料結構範例
@@ -335,7 +276,7 @@ class Disrupter:
 {
   "origin": "Pipeline",
   "target": "The Disrupter",
-  "content": { "topic": "議題X" }, // 需要操作的主題
+  "content": "現狀描述", // 需要挑戰的現狀
   "attention_cost": 1,
   "trace_id": "123e4567-e89b-12d3-a456-426614174000"
 }
@@ -389,7 +330,7 @@ client = GeminiClient(
 此設計允許日後替換為其他 LLM 供應商，僅需實作相容的 Client 介面並註冊於 Pipeline。
 
 ## ADK 整合
-ADK（Agent Development Kit）為 Pipeline 提供標準化的工具管理與狀態維護機制，便於擴充各式 Agent 功能。
+ADK（Agent Development Kit）為 Pipeline 提供標準化的事件與工具管理機制，可在多個 Agent 間共用行為並擴充功能。
 
 ### Tool Registry
 Pipeline 透過 Tool Registry 註冊與查詢可用工具，所有工具以唯一名稱對應實作，執行階段可動態載入或更換。
