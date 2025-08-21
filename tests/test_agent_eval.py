@@ -18,11 +18,15 @@ from google.adk.evaluation.eval_metrics import EvalMetric, PrebuiltMetrics
 from google.genai.types import Content, FunctionCall, Part
 
 from src.agents.llm_agent import LlmAgent
+from src.llm_client import LlmClient
 from google.adk.tools import FunctionTool
 
 
-class _DummyLlm:
+class _DummyLlm(LlmClient):
     """回傳固定字串的假 LLM"""
+
+    def __init__(self) -> None:
+        pass
 
     def generate(self, prompt: str) -> str:
         return "測試回應"
@@ -41,7 +45,6 @@ class _TestAgent(LlmAgent):
         tool.name = "search_news"
         super().__init__(name="tester", tools=[tool])
         self._llm = _DummyLlm()
-
 
 def test_response_and_tool_trajectory() -> None:
     """驗證代理回應與工具軌跡"""
