@@ -9,7 +9,7 @@
 - **結果匯整模組**：收集各 Agent 的輸出，生成最終報告。
 
 ## ADK Agent 與共用機制
-所有代理直接繼承 [ADK](https://github.com/google-deepmind/google-agents) 提供的 `Agent` 或 `LlmAgent` 類別，無須自訂 `BaseAgent`。若多個代理需要共用行為，可利用 ADK 的事件與工具機制協調，例如在代理中註冊工具並透過事件回呼取得執行紀錄。
+所有代理直接繼承 [ADK](https://github.com/google-deepmind/google-agents) 提供的 `Agent` 或 `LlmAgent` 類別，可利用 ADK 的事件與工具機制協調，例如在代理中註冊工具並透過事件回呼取得執行紀錄。
 
 Python 範例
 ```python
