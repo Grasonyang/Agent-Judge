@@ -90,3 +90,10 @@ Google 的 Agent Development Kit（ADK）提供工具整合、跨模型支援、
    ```bash
    python -m pytest
    ```
+5. 使用 ADK 指令驗證流程：
+   ```bash
+   adk run src/workflows/pipeline.py
+   adk web src/workflows/pipeline.py
+   ```
+   - `adk run` 於終端機執行指定流程
+   - `adk web` 啟動網頁介面以視覺化檢視事件
