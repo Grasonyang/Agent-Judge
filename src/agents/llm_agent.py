@@ -17,18 +17,24 @@ class LlmAgent(AdkLlmAgent):
     """整合多項工具的 LLM 代理"""
 
     _tool_logs: list[dict[str, Any]] = PrivateAttr(default_factory=list)
+    _llm: LlmClient = PrivateAttr()
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        llm_client: LlmClient | None = None,
+        **kwargs,
+    ) -> None:
         """初始化代理並註冊工具與回呼"""
         # 註冊預設工具
         tools = list(kwargs.pop("tools", []))
         tools.extend([google_search, search_news])
         kwargs["tools"] = tools
 
-        # 建立 LLM 客戶端以支援多輪對話
-        self._llm = LlmClient()
-
         super().__init__(*args, **kwargs)
+
+        # 建立或使用傳入的 LLM 客戶端以支援多輪對話
+        self._llm = llm_client or LlmClient()
 
         before_tool, after_tool = create_tool_callbacks(self._tool_logs)
         self.before_tool_callback = before_tool
