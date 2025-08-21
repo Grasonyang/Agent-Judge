@@ -10,7 +10,7 @@ from .config import GEMINI_API_KEY
 class LlmClient:
     """簡易的 Gemini 封裝，負責維護多輪對話"""
 
-    def __init__(self, model: str = "gemini-2.0") -> None:
+    def __init__(self, model: str = "gemini-pro") -> None:
         """建立模型連線並設定 API 金鑰"""
         if not GEMINI_API_KEY:
             raise ValueError("未設定 GEMINI_API_KEY 環境變數")

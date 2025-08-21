@@ -34,7 +34,8 @@ class LlmAgent(AdkLlmAgent):
         super().__init__(*args, **kwargs)
 
         # 建立或使用傳入的 LLM 客戶端以支援多輪對話
-        self._llm = llm_client or LlmClient()
+        model = kwargs.get("model", "gemini-pro")
+        self._llm = llm_client or LlmClient(model=model)
 
         before_tool, after_tool = create_tool_callbacks(self._tool_logs)
         self.before_tool_callback = before_tool

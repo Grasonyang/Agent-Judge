@@ -1,50 +1,51 @@
 from __future__ import annotations
 
-import json
-from typing import Dict, List, Tuple
+from typing import Iterable
 
-from google.adk import Agent
-
-from ..llm_client import LlmClient
+from .llm_agent import LlmAgent
 
 
-class Jury(Agent):
-    """陪審團代理
+class Jury(LlmAgent):
+    """陪審團代理類別
 
     角色任務：
-        接收完整對話紀錄與雙方最終立場，透過 LLM 分析辯論強弱並給出裁決。
+        根據完整的辯論歷史紀錄，進行分析並提供最終裁決。
 
     輸入資料格式：
-        `transcript` (`list[tuple[str, str]]`): 對話紀錄，元素為 `(角色, 發言)`。
-        `positions` (`dict[str, str]`): 各方最終立場。
+        `history` (`Iterable[str]` | `str`): 辯論的完整歷史紀錄。
 
     輸出資料格式：
-        `dict[str, str]`: 形如 `{"winner": "advocate", "reason": "理由"}` 的裁決。
+        `str`: 陪審團的最終裁決與分析。
     """
 
-    def __init__(self, *args, llm_client: LlmClient | None = None, **kwargs) -> None:
-        """建立陪審團代理並初始化 LLM 客戶端"""
-        super().__init__(*args, **kwargs)
-        # 若未提供客製 LLM，使用預設 LlmClient
-        self._llm = llm_client or LlmClient()
+    def _build_prompt(self, history: Iterable[str] | str) -> str:
+        """建立用於裁決的提示"""
+        if isinstance(history, str):
+            history_text = history
+        else:
+            history_text = "\n".join(history)
 
-    def run(self, transcript: List[Tuple[str, str]], positions: Dict[str, str]) -> Dict[str, str]:
-        """執行陪審團裁決流程"""
-        # 組裝提示文字供 LLM 分析
-        parts = ["請評估以下辯論並以 JSON 格式回答勝方與理由。", "\n對話紀錄:"]
-        for speaker, message in transcript:
-            parts.append(f"{speaker}: {message}")
-        parts.append("\n最終立場:")
-        for side, stance in positions.items():
-            parts.append(f"{side}: {stance}")
-        parts.append('\n請輸出格式為 {"winner": "", "reason": ""}')
-        prompt = "\n".join(parts)
+        return f"""
+        作為一個公正的陪審團，請根據以下完整的辯論紀錄，分析雙方的論點、質詢和回答。
+        你的任務是：
+        1.  總結正方（advocate）和反方（skeptic）的核心論點。
+        2.  評估誰的論點更有說服力，誰的回答更能應對質詢。
+        3.  基於上述分析，給出你的最終裁決，並解釋理由。
 
-        # 透過 LLM 產生判決
-        response = self._llm.generate(prompt)
-        try:
-            verdict = json.loads(response)
-        except Exception:
-            # 若無法解析 JSON，將完整回應放入 reason
-            verdict = {"winner": "unknown", "reason": response}
-        return verdict
+        辯論紀錄：
+        {history_text}
+
+        請提供你的最終裁決與分析：
+        """
+
+    def run(self, history: Iterable[str] | str) -> str:
+        """執行裁決流程
+
+        參數:
+            history (Iterable[str] | str): 辯論的完整歷史紀錄。
+
+        回傳:
+            str: 陪審團的最終裁決與分析。
+        """
+        prompt = self._build_prompt(history)
+        return self.chat(prompt)

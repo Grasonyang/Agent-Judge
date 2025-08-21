@@ -24,6 +24,10 @@ class Skeptic(LlmAgent):
         """將對話紀錄統一為字串"""
         if isinstance(history, str):
             return history
+        if not history:
+            return ""
+        if isinstance(history[0], dict):
+            return "\n".join([f"{turn.get('speaker', '')}: {turn.get('message', '')}" for turn in history])
         return "\n".join(history)
 
     def _build_prompt(self, history: Iterable[str] | str, action: str, host_prompt: str | None) -> str:
