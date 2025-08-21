@@ -97,3 +97,14 @@ Google 的 Agent Development Kit（ADK）提供工具整合、跨模型支援、
    ```
    - `adk run` 於終端機執行指定流程
    - `adk web` 啟動網頁介面以視覺化檢視事件
+
+## 使用範例
+1. 先設定 Gemini API 金鑰：
+   ```bash
+   export GEMINI_API_KEY="你的金鑰"
+   ```
+2. 執行範例 Runner：
+   ```bash
+   python runner.py
+   ```
+   程式會呼叫 `search_news` 工具並以 `gemini-2.0` 產生摘要，最終輸出包含生成式回覆與工具紀錄。

@@ -7,6 +7,7 @@ from typing import Any
 from google.adk.agents.llm_agent import LlmAgent as AdkLlmAgent
 from google.adk.tools import google_search
 
+from ..llm_client import LlmClient
 from ..tools.search_news import search_news
 
 
@@ -17,6 +18,7 @@ class LlmAgent(AdkLlmAgent):
         """初始化代理並註冊工具與回呼"""
         self.tool_logs: list[dict[str, Any]] = []
 
+        # 註冊預設工具
         tools = list(kwargs.pop("tools", []))
         tools.extend([google_search, search_news])
         kwargs["tools"] = tools
@@ -33,4 +35,11 @@ class LlmAgent(AdkLlmAgent):
         kwargs["before_tool_callback"] = _before_tool
         kwargs["after_tool_callback"] = _after_tool
 
+        # 建立 LLM 客戶端以支援多輪對話
+        self._llm = LlmClient()
+
         super().__init__(*args, **kwargs)
+
+    def chat(self, message: str) -> str:
+        """透過 LLM 客戶端產生回覆"""
+        return self._llm.generate(message)
