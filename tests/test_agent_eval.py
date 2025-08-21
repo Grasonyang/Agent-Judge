@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path
 
+import asyncio
+
 os.environ.setdefault("GEMINI_API_KEY", "dummy")
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -36,6 +38,7 @@ class _TestAgent(LlmAgent):
 
     def __init__(self) -> None:
         tool = FunctionTool(_fake_search_news)
+        tool.name = "search_news"
         super().__init__(name="tester", tools=[tool])
         self._llm = _DummyLlm()
 
@@ -45,9 +48,15 @@ def test_response_and_tool_trajectory() -> None:
     agent = _TestAgent()
     query = "AI"
 
-    # 執行工具並紀錄
-    news = _fake_search_news(query)
-    agent.tool_logs.append({"name": "search_news", "input": {"keyword": query}, "output": news})
+    # 使用工具並透過回呼紀錄
+    tool = agent.tools[0]
+    args = {"keyword": query}
+    agent.before_tool_callback(tool, args, None)
+    news = asyncio.run(tool.run_async(args=args, tool_context=None))
+    agent.after_tool_callback(tool, args, None, news)
+
+    # 驗證回呼生成的紀錄
+    assert agent.tool_logs == [{"name": "search_news", "input": args, "output": news}]
 
     # 產生回應
     reply = agent.chat(f"請根據以下新聞提供摘要：{news}")
