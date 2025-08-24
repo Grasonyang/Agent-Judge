@@ -1,12 +1,8 @@
-from google.adk.agents import Agent
+"""
+請修改main_workflow中的流程
+- 目前流程採用「非動態的同溫層(echo_chamber)傳播」
+- 考慮你的tool是基於agent還是一般function
+    - 若是基於agent，則須明確定義其工作流程(非單純agent)
+"""
 
-root_agent = Agent(
-    name="weather_time_agent",
-    model="gemini-2.5-flash",
-    description=(
-        "回答有關城市時間和天氣的問題。"
-    ),
-    instruction=(
-        "無論使用者輸入何種語言，一律使用繁體中文回答。回答應簡潔一致，並提供有用的資訊。"
-    )
-)
+root_agent
