@@ -1,0 +1,23 @@
+"""
+Agents package: 聚合所有子代理
+"""
+
+from .advocate.agent import advocate_agent
+from .curator.agent import curator_agent
+from .devil.agent import devil_agent
+from .jury.agent import jury_agent
+from .moderator.orchestrator import orchestrator_agent
+from .moderator.loop import referee_loop
+from .skeptic.agent import skeptic_agent
+from .synthesizer.agent import synthesizer_agent
+
+__all__ = [
+    "advocate_agent",
+    "curator_agent",
+    "devil_agent",
+    "jury_agent",
+    "orchestrator_agent",
+    "referee_loop",
+    "skeptic_agent",
+    "synthesizer_agent",
+]
