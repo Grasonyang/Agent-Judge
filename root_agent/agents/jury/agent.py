@@ -30,10 +30,10 @@ jury_agent = LlmAgent(
     instruction=(
         "你是陪審團，請根據完整辯論紀錄與證據，進行客觀量化評分並給出裁決。\n\n"
         "【輸入】\n"
-        "CURATION(JSON): {curation}\n"
-        "ADVOCACY(JSON): {advocacy}\n"
-        "SKEPTICISM(JSON): {skepticism}\n"
-        "DEBATE(LOG): {debate_messages}\n\n"
+    "CURATION(JSON): {curation}\n"
+    "ADVOCACY(JSON): (the current advocacy JSON in state['advocacy'], if any)\n"
+    "SKEPTICISM(JSON): (the current skepticism JSON in state['skepticism'], if any)\n"
+    "DEBATE(LOG): (the current debate messages stored in state['debate_messages'])\n\n"
         "【評分規則】\n"
         "- evidence_quality: 來源權威性/時效性/相關性（0~30）\n"
         "- logical_rigor: 是否自洽、是否有謬誤（0~30）\n"
@@ -45,8 +45,6 @@ jury_agent = LlmAgent(
     ),
     output_schema=JuryOutput,
     output_key="jury_result",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )

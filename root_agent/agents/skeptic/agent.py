@@ -55,9 +55,7 @@ skeptic_tool_agent = LlmAgent(
     ),
     tools=[GoogleSearchTool()],
     output_key="skeptic_search_raw",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
 )
 
 
@@ -70,11 +68,9 @@ skeptic_schema_agent = LlmAgent(
         "輸出符合 SkepticOutput schema 的 JSON（不使用任何工具）。"
     ),
     # no tools here
-    output_schema=SkepticOutput,
+    # remove output_schema to avoid validation errors from imperfect JSON
+    # instead write raw/structured output to state['skepticism']
     output_key="skepticism",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
@@ -83,7 +79,4 @@ skeptic_schema_agent = LlmAgent(
 skeptic_agent = SequentialAgent(
     name="skeptic",
     sub_agents=[skeptic_tool_agent, skeptic_schema_agent],
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
 )

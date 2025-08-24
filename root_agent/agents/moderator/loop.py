@@ -12,16 +12,14 @@ stop_checker = LlmAgent(
     name="stop_checker",
     model="gemini-2.0-flash",
     instruction=(
-        "根據 debate_messages 判斷是否該結束：\n"
-        "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點時。"
-        "若該結束，呼叫 exit_loop；否則輸出 'continue' 一詞（純文字即可）。\n"
-        "MESSAGES:\n{debate_messages}"
+    "根據 debate_messages 判斷是否該結束：\n"
+    "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點時。"
+    "若該結束，呼叫 exit_loop；否則輸出 'continue' 一詞（純文字即可）。\n"
+    "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
     ),
     tools=[exit_loop],
     output_key="stop_signal",
-    planner=BuiltInPlanner(thinking_config=types.ThinkingConfig(
-        include_thoughts=False, thinking_budget=64
-    )),
+    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 

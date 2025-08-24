@@ -40,9 +40,7 @@ curator_tool_agent = LlmAgent(
     tools=[GoogleSearchTool()],
     # 不設 output_schema（工具原始輸出）
     output_key="curation_raw",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
 )
 
 
@@ -58,9 +56,7 @@ curator_schema_agent = LlmAgent(
     input_schema=CuratorInput,
     output_schema=CuratorOutput,
     output_key="curation",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.4),
 )
 
@@ -69,9 +65,6 @@ curator_schema_agent = LlmAgent(
 curator_agent = SequentialAgent(
     name="curator",
     sub_agents=[curator_tool_agent, curator_schema_agent],
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
 )
 
 

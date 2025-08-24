@@ -19,9 +19,7 @@ devil_tool_agent = LlmAgent(
     ),
     tools=[GoogleSearchTool()],
     output_key="devil_search_raw",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending unsupported thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
@@ -36,9 +34,7 @@ devil_schema_agent = LlmAgent(
     # no tools here
     output_schema=DevilOutput,
     output_key="devil_turn",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending unsupported thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
@@ -47,7 +43,4 @@ devil_schema_agent = LlmAgent(
 devil_agent = SequentialAgent(
     name="devils_advocate",
     sub_agents=[devil_tool_agent, devil_schema_agent],
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
 )

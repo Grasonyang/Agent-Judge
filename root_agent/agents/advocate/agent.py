@@ -44,9 +44,7 @@ advocate_tool_agent = LlmAgent(
     ),
     tools=[GoogleSearchTool()],
     output_key="advocate_search_raw",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
 )
 
 
@@ -61,9 +59,7 @@ advocate_schema_agent = LlmAgent(
     # no tools here
     output_schema=AdvocateOutput,
     output_key="advocacy",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.4),
 )
 
@@ -72,7 +68,4 @@ advocate_schema_agent = LlmAgent(
 advocate_agent = SequentialAgent(
     name="advocate",
     sub_agents=[advocate_tool_agent, advocate_schema_agent],
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
 )

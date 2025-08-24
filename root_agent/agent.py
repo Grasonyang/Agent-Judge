@@ -39,9 +39,6 @@ root_agent = SequentialAgent(
         jury_agent,
         synthesizer_agent # 產生 state["final_report_json"]
     ],
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
 )
 
 # =============== 便捷執行函式（應用層呼叫） ===============

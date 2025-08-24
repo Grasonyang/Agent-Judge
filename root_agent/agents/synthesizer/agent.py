@@ -42,12 +42,12 @@ synthesizer_agent = LlmAgent(
     instruction=(
         "你是『知識整合者（Synthesizer）』。根據下列輸入生成最終報告的嚴格 JSON。\n\n"
         "【輸入】\n"
-        "- CURATION(JSON): {curation}\n"
-        "- ADVOCACY(JSON): {advocacy}\n"
-        "- SKEPTICISM(JSON): {skepticism}\n"
-        "- (可選) DEVIL(JSON): {devil_turn}\n"
-        "- JURY(JSON): {jury_result}\n"
-        "- DEBATE LOG (messages array): {debate_messages}\n\n"
+    "- CURATION(JSON): {curation}\n"
+    "- ADVOCACY(JSON): (the current advocacy JSON in state['advocacy'], if any)\n"
+    "- SKEPTICISM(JSON): (the current skepticism JSON in state['skepticism'], if any)\n"
+    "- (可選) DEVIL(JSON): (the optional devil turn stored in state['devil_turn'], if any)\n"
+    "- JURY(JSON): (the current jury result in state['jury_result'], if any)\n"
+    "- DEBATE LOG (messages array): (the current debate messages stored in state['debate_messages'])\n\n"
         "【要求】\n"
         "1) 僅輸出符合 FinalReport schema 的 JSON；不得有多餘文字。\n"
         "2) overall_assessment 要清楚可執行；evidence_digest 列出最關鍵來源（含短說明、可附 URL）。\n"
@@ -57,8 +57,6 @@ synthesizer_agent = LlmAgent(
     ),
     output_schema=FinalReport,
     output_key="final_report_json",
-    planner=BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(include_thoughts=False, thinking_budget=256)
-    ),
+    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
