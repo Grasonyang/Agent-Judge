@@ -10,6 +10,7 @@ from .agents import curator_agent
 from .agents.moderator.loop import referee_loop          # LoopAgent（主持人回合制）
 from .agents.jury.agent import jury_agent
 from .agents.synthesizer.agent import synthesizer_agent
+from .agents.social.agent import social_agent
 from .agents.synthesizer import render_final_report_md   # 工具：JSON → Markdown
 
 # =============== Root 入口參數 / 輸出 ===============
@@ -37,6 +38,7 @@ root_agent = SequentialAgent(
         curator_agent,
         referee_loop,     # 這顆是 LoopAgent；會讀寫 state["debate_messages"]
         jury_agent,
+        social_agent,
         synthesizer_agent # 產生 state["final_report_json"]
     ],
 )
