@@ -6,7 +6,7 @@ from google.genai import types
 from google.adk.planners import BuiltInPlanner
 
 # === 匯入子代理 ===
-from .agents import curator_agent
+from .agents import curator_agent, historian_agent
 from .agents.moderator.loop import referee_loop          # LoopAgent（主持人回合制）
 from .agents.jury.agent import jury_agent
 from .agents.synthesizer.agent import synthesizer_agent
@@ -36,6 +36,7 @@ root_agent = SequentialAgent(
     name="root_pipeline",
     sub_agents=[
         curator_agent,
+        historian_agent,
         referee_loop,     # 這顆是 LoopAgent；會讀寫 state["debate_messages"]
         jury_agent,
         social_agent,

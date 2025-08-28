@@ -4,6 +4,7 @@ Agents package: 聚合所有子代理
 
 from .advocate.agent import advocate_agent
 from .curator.agent import curator_agent
+from .historian.agent import historian_agent
 from .devil.agent import devil_agent
 from .jury.agent import jury_agent
 from .moderator.orchestrator import orchestrator_agent
@@ -15,6 +16,7 @@ from .social.agent import social_agent
 __all__ = [
     "advocate_agent",
     "curator_agent",
+    "historian_agent",
     "devil_agent",
     "jury_agent",
     "orchestrator_agent",
