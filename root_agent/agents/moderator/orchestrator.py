@@ -1,5 +1,6 @@
 from typing import Literal, List, Dict, Any
 from pydantic import BaseModel, Field
+import json
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.planners import BuiltInPlanner
@@ -72,15 +73,51 @@ async def _run_agent_sequence_and_return(agent_sequence: list, tool_context: Too
 
 
 async def call_advocate(args=None, tool_context: ToolContext = None):
-    return await _run_agent_sequence_and_return([advocate_tool.agent, advocate_tool.agent.sub_agents[-1] if hasattr(advocate_tool.agent, 'sub_agents') else advocate_tool.agent], tool_context)
+    """呼叫正方代理，更新對話狀態並回傳字串"""
+    result = await _run_agent_sequence_and_return(
+        [
+            advocate_tool.agent,
+            advocate_tool.agent.sub_agents[-1]
+            if hasattr(advocate_tool.agent, 'sub_agents')
+            else advocate_tool.agent,
+        ],
+        tool_context,
+    )
+    text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
+    tool_context.state.setdefault("debate_messages", []).append({"role": "advocate", "content": text})
+    return text
 
 
 async def call_skeptic(args=None, tool_context: ToolContext = None):
-    return await _run_agent_sequence_and_return([skeptic_tool.agent, skeptic_tool.agent.sub_agents[-1] if hasattr(skeptic_tool.agent, 'sub_agents') else skeptic_tool.agent], tool_context)
+    """呼叫反方代理，更新對話狀態並回傳字串"""
+    result = await _run_agent_sequence_and_return(
+        [
+            skeptic_tool.agent,
+            skeptic_tool.agent.sub_agents[-1]
+            if hasattr(skeptic_tool.agent, 'sub_agents')
+            else skeptic_tool.agent,
+        ],
+        tool_context,
+    )
+    text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
+    tool_context.state.setdefault("debate_messages", []).append({"role": "skeptic", "content": text})
+    return text
 
 
 async def call_devil(args=None, tool_context: ToolContext = None):
-    return await _run_agent_sequence_and_return([devil_tool.agent, devil_tool.agent.sub_agents[-1] if hasattr(devil_tool.agent, 'sub_agents') else devil_tool.agent], tool_context)
+    """呼叫極端質疑者，更新對話狀態並回傳字串"""
+    result = await _run_agent_sequence_and_return(
+        [
+            devil_tool.agent,
+            devil_tool.agent.sub_agents[-1]
+            if hasattr(devil_tool.agent, 'sub_agents')
+            else devil_tool.agent,
+        ],
+        tool_context,
+    )
+    text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
+    tool_context.state.setdefault("debate_messages", []).append({"role": "devil", "content": text})
+    return text
 
 class NextTurnDecision(BaseModel):
     next_speaker: Literal["advocate", "skeptic", "devil", "end"] = Field(
@@ -111,9 +148,9 @@ executor_agent = LlmAgent(
     name="moderator_executor",
     model="gemini-2.5-flash",
     instruction=(
-        "你是主持人的執行模組：讀取 state['next_decision']，若 next_speaker 為 'end' 則不呼叫任何角色，"
-        "否則呼叫相對應的工具 (call_advocate/call_skeptic/call_devil) 來取得該角色的發言，"
-        "將取得的發言物件（包含角色與內容）追加到 state['debate_messages']，並在 state 中記錄此次執行結果。"
+        "你是主持人的執行模組：讀取 state['next_decision']，若 next_speaker 為 'end' 則回傳空字串，"
+        "否則呼叫相對應的工具 (call_advocate/call_skeptic/call_devil) 取得該角色的發言。"
+        "工具已自動更新 state['debate_messages']，請將取得的字串原封不動地回傳。"
     ),
     tools=[advocate_tool, skeptic_tool, devil_tool],
     # no output_schema here because tools are used
