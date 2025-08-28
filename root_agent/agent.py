@@ -5,6 +5,9 @@ from google.adk.agents import SequentialAgent
 from google.genai import types
 from google.adk.planners import BuiltInPlanner
 
+# 知識庫 API
+from .knowledge_base import save_graphlet, load_graphlet
+
 # === 匯入子代理 ===
 from .agents import curator_agent, historian_agent
 from .agents.moderator.loop import referee_loop          # LoopAgent（主持人回合制）
@@ -70,8 +73,40 @@ async def run_root(session, payload: dict) -> dict:
     # 若你在 referee_loop/或 orchestrator 內有使用 max_iterations，可在那裡讀 state["max_turns"]
     session.state["max_turns"] = int(payload.get("max_turns", 12))
 
-    # ---- 跑整條管線 ----
-    result_state = await root_agent.run_async(session)
+    # 知識庫路徑（預設存於當前資料夾的 kb/）
+    kb_path = payload.get("kb_path", "kb")
+    session.state["kb_path"] = kb_path
+
+    # ---- 逐步執行管線並與 KB 互動 ----
+    # 1) Curator：搜尋整理並寫入 KB
+    result_state = await curator_agent.run_async(session)
+    if result_state.get("curation"):
+        save_graphlet("curation", result_state["curation"], kb_path)
+
+    # 2) Historian：分析時間軸並寫入 KB
+    result_state = await historian_agent.run_async(session)
+    if result_state.get("history"):
+        save_graphlet("history", result_state["history"], kb_path)
+
+    # 3) Moderator：先從 KB 讀取必要資料
+    for key in ("curation", "history"):
+        try:
+            session.state[key] = load_graphlet(key, kb_path)
+        except FileNotFoundError:
+            pass
+    result_state = await referee_loop.run_async(session)
+
+    # 4) Social Agent：再次確認從 KB 讀取
+    for key in ("curation", "history"):
+        try:
+            session.state[key] = load_graphlet(key, kb_path)
+        except FileNotFoundError:
+            pass
+    result_state = await social_agent.run_async(session)
+
+    # 5) Jury 與 6) Synthesizer
+    result_state = await jury_agent.run_async(session)
+    result_state = await synthesizer_agent.run_async(session)
 
     # ---- 依需求輸出 Markdown ----
     final_path = None
