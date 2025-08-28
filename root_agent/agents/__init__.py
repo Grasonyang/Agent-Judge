@@ -10,6 +10,7 @@ from .moderator.orchestrator import orchestrator_agent
 from .moderator.loop import referee_loop
 from .skeptic.agent import skeptic_agent
 from .synthesizer.agent import synthesizer_agent
+from .social.agent import social_agent
 
 __all__ = [
     "advocate_agent",
@@ -20,4 +21,5 @@ __all__ = [
     "referee_loop",
     "skeptic_agent",
     "synthesizer_agent",
+    "social_agent",
 ]
