@@ -21,7 +21,10 @@ def _graphlet_path(base_path: str, name: str) -> Path:
 
 
 def save_graphlet(name: str, data: Any, base_path: str) -> str:
-    """將圖片段資料寫入 JSON 檔並回傳路徑"""
+    """將圖片段資料寫入 JSON 檔並回傳路徑
+
+    使用 `json.dump` 進行序列化寫入。
+    """
     path = _graphlet_path(base_path, name)
     path.parent.mkdir(parents=True, exist_ok=True)
     serializable = _to_serializable(data)
@@ -31,7 +34,10 @@ def save_graphlet(name: str, data: Any, base_path: str) -> str:
 
 
 def load_graphlet(name: str, base_path: str) -> Any:
-    """讀取指定名稱的圖片段 JSON 資料"""
+    """讀取指定名稱的圖片段 JSON 資料
+
+    使用 `json.load` 解析檔案內容。
+    """
     path = _graphlet_path(base_path, name)
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
