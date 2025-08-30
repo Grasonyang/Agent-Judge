@@ -1,16 +1,26 @@
 from typing import Optional
 from pydantic import BaseModel, Field
 
+import hashlib
+import json
+from datetime import datetime
+from pathlib import Path
+
 from google.adk.agents import SequentialAgent
 from google.genai import types
 from google.adk.planners import BuiltInPlanner
-from pathlib import Path
 
 # 辯論紀錄讀寫
 from .agents.debate_log import load_debate_log, save_debate_log, Turn
 
 # 知識庫 API
-from .knowledge_base import save_graphlet, load_graphlet
+from .knowledge_base import (
+    save_graphlet,
+    load_graphlet,
+    save_evidence_registry,
+    load_evidence_registry,
+    save_repro_pack,
+)
 
 # === 匯入子代理 ===
 from .agents import curator_agent, historian_agent
@@ -81,6 +91,13 @@ async def run_root(session, payload: dict) -> dict:
     kb_path = payload.get("kb_path", "kb")
     session.state["kb_path"] = kb_path
 
+    # Evidence Registry：若存在則讀取
+    try:
+        evidence_registry = load_evidence_registry(kb_path)
+    except FileNotFoundError:
+        evidence_registry = []
+    session.state["evidence_registry"] = evidence_registry
+
     # 讀取既有辯論紀錄
     debate_log_path = str(Path(kb_path) / "debate_log.json")
     session.state["debate_log_path"] = debate_log_path
@@ -92,11 +109,34 @@ async def run_root(session, payload: dict) -> dict:
     result_state = await curator_agent.run_async(session)
     if result_state.get("curation"):
         save_graphlet("curation", result_state["curation"], kb_path)
+        # 記錄來源資訊至 Evidence Registry
+        for res in result_state["curation"].get("results", []):
+            entry = {
+                "stage": "curator",
+                "source": res.get("url"),
+                "hash": hashlib.sha256(res.get("url", "").encode("utf-8")).hexdigest(),
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+            evidence_registry.append(entry)
+        save_evidence_registry(evidence_registry, kb_path)
 
     # 2) Historian：分析時間軸並寫入 KB
     result_state = await historian_agent.run_async(session)
     if result_state.get("history"):
         save_graphlet("history", result_state["history"], kb_path)
+        # 記錄 Historian 產物的雜湊值
+        history_hash = hashlib.sha256(
+            json.dumps(result_state["history"], sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        evidence_registry.append(
+            {
+                "stage": "historian",
+                "source": "history",
+                "hash": history_hash,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
+        save_evidence_registry(evidence_registry, kb_path)
 
     # 3) Moderator：先從 KB 讀取必要資料
     for key in ("curation", "history"):
@@ -130,5 +170,34 @@ async def run_root(session, payload: dict) -> dict:
     # 寫入辯論紀錄檔
     turns_to_save = [Turn.model_validate(m) for m in session.state.get("debate_messages", [])]
     save_debate_log(debate_log_path, turns_to_save)
+
+    # 建立並保存 Repro Pack
+    repro_pack = {
+        "query": session.state.get("query"),
+        "top_k": session.state.get("top_k"),
+        "site": session.state.get("site"),
+        "enable_devil": session.state.get("enable_devil"),
+        "max_turns": session.state.get("max_turns"),
+        "agents": [],
+    }
+
+    def _collect_agent_info(agent, container):
+        """遞迴收集代理的模型與溫度設定"""
+        sub_agents = getattr(agent, "sub_agents", None)
+        if sub_agents:
+            for sub in sub_agents:
+                _collect_agent_info(sub, container)
+            return
+        info = {"name": getattr(agent, "name", "")}
+        model = getattr(agent, "model", None)
+        if model:
+            info["model"] = model
+        gcc = getattr(agent, "generate_content_config", None)
+        if gcc and hasattr(gcc, "temperature"):
+            info["temperature"] = gcc.temperature
+        container.append(info)
+
+    _collect_agent_info(root_agent, repro_pack["agents"])
+    save_repro_pack(repro_pack, kb_path)
 
     return result_state
