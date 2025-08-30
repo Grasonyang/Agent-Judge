@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
@@ -48,7 +48,7 @@ skeptic_tool_agent = LlmAgent(
 )
 
 
-# Step 2: schema-only agent that consumes state['curation'], state['advocacy'] and state['skeptic_search_raw'] to produce validated skepticism
+# Step 2: schema-only agent that consumes state['curation'], state['advocacy'] 和 state['skeptic_search_raw']，並輸出符合 SkepticOutput 的 JSON
 skeptic_schema_agent = LlmAgent(
     name="skeptic_schema_validator",
     model="gemini-2.5-flash",
@@ -56,16 +56,35 @@ skeptic_schema_agent = LlmAgent(
         "請根據 state['curation'] 與 state['advocacy']，以及可選的 state['skeptic_search_raw'] 補充，"
         "輸出符合 SkepticOutput schema 的 JSON（不使用任何工具）。"
     ),
-    # no tools here
-    # remove output_schema to avoid validation errors from imperfect JSON
-    # instead write raw/structured output to state['skepticism']
+    # 無需工具
+    output_schema=SkepticOutput,
     output_key="skepticism",
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
 
-# Public skeptic pipeline
-skeptic_agent = SequentialAgent(
+# Public skeptic pipeline with simple retry for schema validation
+class SkepticSequentialAgent(SequentialAgent):
+    async def run_async(self, session):
+        # 先執行工具代理人
+        await self.sub_agents[0].run_async(session)
+
+        last_error = None
+        # 最多嘗試兩次產生符合 Schema 的結果
+        for _ in range(2):
+            try:
+                await self.sub_agents[1].run_async(session)
+                # 驗證是否符合 SkepticOutput
+                SkepticOutput.model_validate(session.state["skepticism"])
+                return
+            except (ValidationError, ValueError, KeyError) as e:
+                # 記錄錯誤並重試
+                last_error = e
+        # 若仍失敗則拋出錯誤
+        raise last_error
+
+
+skeptic_agent = SkepticSequentialAgent(
     name="skeptic",
     sub_agents=[skeptic_tool_agent, skeptic_schema_agent],
 )
