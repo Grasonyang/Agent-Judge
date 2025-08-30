@@ -9,6 +9,9 @@ class SocialLog(BaseModel):
     echo_chamber: str = Field(description="各同溫層的反應摘要")
     influencer: str = Field(description="意見領袖如何放大或扭轉訊息")
     disrupter: str = Field(description="干擾者投放的訊息與系統反應")
+    polarization_index: float = Field(description="0 到 1 之間的極化指數")
+    virality_score: float = Field(description="0 到 1 之間的病毒式擴散分數")
+    manipulation_risk: float = Field(description="0 到 1 之間的操弄風險")
 
 
 # ==== 個別角色定義 ====
@@ -58,6 +61,8 @@ _social_aggregator = LlmAgent(
         "- Echo Chamber: {echo_chamber}\n"
         "- Influencer: {influencer}\n"
         "- Disrupter: {disrupter}\n"
+        "請根據上述內容計算以下指標：\n"
+        "polarization_index、virality_score、manipulation_risk，數值介於 0 到 1。\n"
         "僅輸出符合 SocialLog schema 的 JSON。"
     ),
     output_schema=SocialLog,

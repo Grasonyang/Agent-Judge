@@ -89,6 +89,9 @@ def test_social_agent_outputs_social_log():
             echo_chamber=session.state["echo_chamber"],
             influencer=session.state["influencer"],
             disrupter=session.state["disrupter"],
+            polarization_index=0.1,
+            virality_score=0.2,
+            manipulation_risk=0.3,
         )
         session.state["social_log"] = log.model_dump()
 
@@ -98,6 +101,20 @@ def test_social_agent_outputs_social_log():
     session = DummySession()
     asyncio.run(social_mod.social_agent.run_async(session))
     assert "social_log" in session.state
+    log = session.state["social_log"]
+    # 確認新增的指標欄位存在且為浮點數
+    for key in [
+        "echo_chamber",
+        "influencer",
+        "disrupter",
+        "polarization_index",
+        "virality_score",
+        "manipulation_risk",
+    ]:
+        assert key in log
+    assert isinstance(log["polarization_index"], float)
+    assert isinstance(log["virality_score"], float)
+    assert isinstance(log["manipulation_risk"], float)
 
 
 def test_jury_agent_consumes_social_log():
@@ -118,6 +135,13 @@ def test_jury_agent_consumes_social_log():
     jury_mod.jury_agent.run_async = fake_jury_run
 
     session = DummySession()
-    session.state["social_log"] = {"echo_chamber": "EC"}
+    session.state["social_log"] = {
+        "echo_chamber": "EC",
+        "influencer": "INF",
+        "disrupter": "DIS",
+        "polarization_index": 0.1,
+        "virality_score": 0.2,
+        "manipulation_risk": 0.3,
+    }
     asyncio.run(jury_mod.jury_agent.run_async(session))
     assert session.state["jury_result"]["scores"]["total"] == 40
