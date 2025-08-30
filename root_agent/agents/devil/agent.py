@@ -1,13 +1,15 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
+from ..evidence import Evidence
 
 class DevilOutput(BaseModel):
     stance: str = Field(description="極端質疑的核心立場，單句")
     attack_points: List[str] = Field(description="2~5 條攻擊點，盡量尖銳")
+    evidence: List[Evidence] = Field(description="引用或質疑的證據列表")
     requested_clarifications: List[str] = Field(description="希望對方補充/舉證的關鍵問題")
 
 devil_tool_agent = LlmAgent(
