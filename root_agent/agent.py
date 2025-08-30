@@ -29,6 +29,7 @@ from .agents.social.agent import social_agent
 from .agents.jury.agent import jury_agent
 from .agents.synthesizer.agent import synthesizer_agent
 from .agents.synthesizer import render_final_report_md   # 工具：JSON → Markdown
+from evaluation.metrics import evaluate_truthfulness, evaluate_consistency
 
 # =============== Root 入口參數 / 輸出 ===============
 class RootInput(BaseModel):
@@ -156,6 +157,13 @@ async def run_root(session, payload: dict) -> dict:
 
     # 5) Jury 與 6) Synthesizer
     result_state = await jury_agent.run_async(session)
+    # --- 執行評估指標 ---
+    evaluation = {
+        "truthfulness": evaluate_truthfulness(session.state.get("debate_messages", [])),
+        "consistency": evaluate_consistency(session.state.get("debate_messages", [])),
+    }
+    session.state["evaluation"] = evaluation
+    save_graphlet("evaluation", evaluation, kb_path)
     result_state = await synthesizer_agent.run_async(session)
 
     # ---- 依需求輸出 Markdown ----
