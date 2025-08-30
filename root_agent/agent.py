@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 from google.adk.agents import SequentialAgent
 from google.genai import types
 from google.adk.planners import BuiltInPlanner
+from pathlib import Path
+
+# 辯論紀錄讀寫
+from .agents.debate_log import load_debate_log, save_debate_log, Turn
 
 # 知識庫 API
 from .knowledge_base import save_graphlet, load_graphlet
@@ -77,6 +81,12 @@ async def run_root(session, payload: dict) -> dict:
     kb_path = payload.get("kb_path", "kb")
     session.state["kb_path"] = kb_path
 
+    # 讀取既有辯論紀錄
+    debate_log_path = str(Path(kb_path) / "debate_log.json")
+    session.state["debate_log_path"] = debate_log_path
+    existing_turns = load_debate_log(debate_log_path)
+    session.state["debate_messages"].extend([t.model_dump() for t in existing_turns])
+
     # ---- 逐步執行管線並與 KB 互動 ----
     # 1) Curator：搜尋整理並寫入 KB
     result_state = await curator_agent.run_async(session)
@@ -116,5 +126,9 @@ async def run_root(session, payload: dict) -> dict:
             out = render_final_report_md(fr_json)   # {"path": "...", "bytes": ...}
             final_path = out["path"]
             result_state["final_report_path"] = final_path
+
+    # 寫入辯論紀錄檔
+    turns_to_save = [Turn.model_validate(m) for m in session.state.get("debate_messages", [])]
+    save_debate_log(debate_log_path, turns_to_save)
 
     return result_state

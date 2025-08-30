@@ -12,6 +12,9 @@ from google.adk.tools.tool_context import ToolContext
 from google.adk.agents import LlmAgent as _LlmAgent
 from google.genai import types as genai_types
 
+# 辯論紀錄工具
+from ..debate_log import Turn, append_turn
+
 # 引入三方角色
 from ..advocate.agent import advocate_agent
 from ..skeptic.agent import skeptic_agent
@@ -73,7 +76,7 @@ async def _run_agent_sequence_and_return(agent_sequence: list, tool_context: Too
 
 
 async def call_advocate(args=None, tool_context: ToolContext = None):
-    """呼叫正方代理，更新對話狀態並回傳字串"""
+    """呼叫正方代理，更新對話狀態並寫入辯論紀錄"""
     result = await _run_agent_sequence_and_return(
         [
             advocate_tool.agent,
@@ -84,12 +87,16 @@ async def call_advocate(args=None, tool_context: ToolContext = None):
         tool_context,
     )
     text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
-    tool_context.state.setdefault("debate_messages", []).append({"role": "advocate", "content": text})
+    turn = Turn(speaker="advocate", content=text)
+    tool_context.state.setdefault("debate_messages", []).append(turn.model_dump())
+    log_path = tool_context.state.get("debate_log_path")
+    if log_path:
+        append_turn(log_path, turn)
     return text
 
 
 async def call_skeptic(args=None, tool_context: ToolContext = None):
-    """呼叫反方代理，更新對話狀態並回傳字串"""
+    """呼叫反方代理，更新對話狀態並寫入辯論紀錄"""
     result = await _run_agent_sequence_and_return(
         [
             skeptic_tool.agent,
@@ -100,12 +107,16 @@ async def call_skeptic(args=None, tool_context: ToolContext = None):
         tool_context,
     )
     text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
-    tool_context.state.setdefault("debate_messages", []).append({"role": "skeptic", "content": text})
+    turn = Turn(speaker="skeptic", content=text)
+    tool_context.state.setdefault("debate_messages", []).append(turn.model_dump())
+    log_path = tool_context.state.get("debate_log_path")
+    if log_path:
+        append_turn(log_path, turn)
     return text
 
 
 async def call_devil(args=None, tool_context: ToolContext = None):
-    """呼叫極端質疑者，更新對話狀態並回傳字串"""
+    """呼叫極端質疑者，更新對話狀態並寫入辯論紀錄"""
     result = await _run_agent_sequence_and_return(
         [
             devil_tool.agent,
@@ -116,7 +127,11 @@ async def call_devil(args=None, tool_context: ToolContext = None):
         tool_context,
     )
     text = json.dumps(result, ensure_ascii=False) if isinstance(result, (dict, list)) else str(result)
-    tool_context.state.setdefault("debate_messages", []).append({"role": "devil", "content": text})
+    turn = Turn(speaker="devil", content=text)
+    tool_context.state.setdefault("debate_messages", []).append(turn.model_dump())
+    log_path = tool_context.state.get("debate_log_path")
+    if log_path:
+        append_turn(log_path, turn)
     return text
 
 class NextTurnDecision(BaseModel):
