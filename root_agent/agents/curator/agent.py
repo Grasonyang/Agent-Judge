@@ -7,6 +7,7 @@ from google.genai import types
 
 # ✨ 內建搜尋工具
 from google.adk.tools.google_search_tool import GoogleSearchTool
+from ..evidence import Evidence
 
 
 # -------- Schema（輸入/輸出）---------
@@ -22,6 +23,24 @@ class SearchResult(BaseModel):
     title: str
     url: str
     snippet: str
+
+    def to_evidence(
+        self,
+        claim: str,
+        warrant: str,
+        method: Optional[str] = None,
+        risk: Optional[str] = None,
+        confidence: Optional[str] = None,
+    ) -> Evidence:
+        """轉為 Evidence 方便其他代理引用"""
+        return Evidence(
+            source=self.url,
+            claim=claim,
+            warrant=warrant,
+            method=method,
+            risk=risk,
+            confidence=confidence,
+        )
 
 class CuratorOutput(BaseModel):
     query: str

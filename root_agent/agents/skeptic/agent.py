@@ -1,10 +1,11 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
+from ..evidence import Evidence
 
 
 # ---- 方便比對 Advocate / Curator 內容 ----
@@ -17,30 +18,18 @@ class CuratorOutput(BaseModel):
     query: str
     results: List[CuratorSearchResult]
 
-class EvidenceUse(BaseModel):
-    title: str
-    url: str
-    why_relevant: str
-    quote_or_fact: Optional[str] = None
-
 class AdvocateOutput(BaseModel):
     thesis: str
     key_points: List[str]
-    evidence_used: List[EvidenceUse]
+    evidence: List[Evidence]
     caveats: List[str]
 
 
 # ---- Skeptic 輸出 Schema（ONLY JSON） ----
-class CounterEvidence(BaseModel):
-    title: str
-    url: str
-    how_it_refutes: str
-    quote_or_fact: Optional[str] = None
-
 class SkepticOutput(BaseModel):
     counter_thesis: str = Field(description="反方的核心反命題（單句）")
     challenges: List[str] = Field(description="逐點質疑，最好對應正方 key_points 的編號或重點")
-    counter_evidence: List[CounterEvidence] = Field(description="反向或修正的證據")
+    evidence: List[Evidence] = Field(description="反向或修正的證據")
     open_questions: List[str] = Field(description="尚無定論、需要進一步查證的問題點")
 
 

@@ -1,10 +1,11 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
+from ..evidence import Evidence
 
 
 # ---- 讀 Curator 的證據結構（最小鏡像；如你已有型別可改 from ... import） ----
@@ -20,16 +21,10 @@ class CuratorOutput(BaseModel):
 
 
 # ---- Advocate 輸出 Schema（ONLY JSON） ----
-class EvidenceUse(BaseModel):
-    title: str
-    url: str
-    why_relevant: str
-    quote_or_fact: Optional[str] = None  # 可選：引用片段或關鍵事實（簡短）
-
 class AdvocateOutput(BaseModel):
     thesis: str = Field(description="正方主張的核心命題（單句）")
     key_points: List[str] = Field(description="3~6 條支持重點，避免冗長")
-    evidence_used: List[EvidenceUse] = Field(description="逐條列出引用了哪些證據與理由")
+    evidence: List[Evidence] = Field(description="逐條列出引用的證據")
     caveats: List[str] = Field(description="已知限制或尚待查證處（1~3 條）")
 
 
