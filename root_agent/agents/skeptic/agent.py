@@ -5,7 +5,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
-from ..evidence import Evidence
+from root_agent.agents.evidence import Evidence  # 使用絕對匯入以避免路徑問題
 
 
 # ---- 方便比對 Advocate / Curator 內容 ----
