@@ -13,6 +13,9 @@ from root_agent.agents.advocate.agent import advocate_agent
 from root_agent.agents.skeptic.agent import skeptic_agent
 from root_agent.agents.devil.agent import devil_agent
 
+# 統一設定停用訊號的工具
+from .stop_utils import mark_stop
+
 # 把子代理包成可被呼叫的工具（a2a / a3a）
 advocate_tool = AgentTool(advocate_agent)
 advocate_tool.name = "call_advocate"
@@ -30,9 +33,8 @@ def _exit_if_end(callback_context, **_):
     if next_speaker is None and isinstance(decision, dict):
         next_speaker = decision.get("next_speaker")
     if next_speaker == "end":
-        # 標記停用信號，由統一的 stop_enforcer 來觸發實際的工具呼叫
-        state["stop_signal"] = "exit_loop"
-        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
+        # 若決策為結束，統一由工具標記停用訊號
+        return mark_stop(state)
     return None
 
 class NextTurnDecision(BaseModel):
