@@ -13,12 +13,12 @@ from google.adk.agents import LlmAgent as _LlmAgent
 from google.genai import types as genai_types
 
 # 辯論紀錄工具
-from ..debate_log import Turn, append_turn
+from root_agent.agents.debate_log import Turn, append_turn
 
 # 引入三方角色
-from ..advocate.agent import advocate_agent
-from ..skeptic.agent import skeptic_agent
-from ..devil.agent import devil_agent
+from root_agent.agents.advocate.agent import advocate_agent
+from root_agent.agents.skeptic.agent import skeptic_agent
+from root_agent.agents.devil.agent import devil_agent
 
 # 把子代理包成可被呼叫的工具（a2a / a3a）
 advocate_tool = AgentTool(advocate_agent)
