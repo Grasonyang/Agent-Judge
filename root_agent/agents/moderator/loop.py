@@ -1,6 +1,9 @@
 from google.adk.agents import LoopAgent, LlmAgent
 from google.genai import types
 
+# 統一設定停用訊號的工具
+from .stop_utils import mark_stop
+
 # 用一個小工具來「跳出」Loop（ADK 常見寫法）
 def exit_loop(tool_context):
     print("Calling exit")
@@ -38,23 +41,15 @@ def _should_stop(state) -> bool:
 def _metrics_before_stop(callback_context, **_):
     """在 stop_checker 執行前更新指標，並檢查是否已有停止訊號"""
     state = callback_context.state
-    # 若已有人或邏輯標記要結束，僅回傳信號（不要直接呼叫工具）
+    # 若已有人或邏輯標記要結束，直接回傳統一訊號
     if state.get("stop_signal") == "exit_loop":
-        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
+        return mark_stop(state)
     _update_metrics(state)
     if _should_stop(state):
-        # 標記停用信號，實際呼叫 exit_loop 由 stop_enforcer 統一處理
-        state["stop_signal"] = "exit_loop"
-        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
+        # 標記停用訊號，統一由 stop_enforcer 處理實際退出
+        return mark_stop(state)
     return None
 
-
-def _skip_if_stopped(callback_context, **_):
-    """在 stop_enforcer 執行前檢查是否已停止"""
-    # 若已標記停止，回傳停止信號；讓 stop_enforcer 的模型或工具呼叫統一處理
-    if callback_context.state.get("stop_signal") == "exit_loop":
-        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
-    return None
 
 # 檢查是否應該停止（例如輪數或無新資訊），由 LLM 產生信號並呼叫 exit_loop
 stop_checker = LlmAgent(
@@ -86,7 +81,6 @@ stop_enforcer = LlmAgent(
     ),
     tools=[exit_loop],
     output_key="stop_enforced",
-    before_agent_callback=_skip_if_stopped,
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
