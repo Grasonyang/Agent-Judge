@@ -1,3 +1,5 @@
+"""主持人相關工具：整合原 loop 與 stop_utils 的功能"""
+
 from google.genai import types
 
 
@@ -59,3 +61,4 @@ def deterministic_stop_callback(callback_context, **_):
     if should_stop(state):
         return mark_stop(state)
     return None
+
