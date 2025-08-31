@@ -7,7 +7,8 @@ from google.genai import types
 
 # ✨ 內建搜尋工具
 from google.adk.tools.google_search_tool import GoogleSearchTool
-from ..evidence import Evidence
+# 採用絕對匯入以確保 Evidence 類別在各層級皆可正確引用
+from root_agent.agents.evidence import Evidence
 
 
 # -------- Schema（輸入/輸出）---------
@@ -33,6 +34,7 @@ class SearchResult(BaseModel):
         confidence: Optional[str] = None,
     ) -> Evidence:
         """轉為 Evidence 方便其他代理引用"""
+        # 使用 Evidence 模型建立標準化證據物件
         return Evidence(
             source=self.url,
             claim=claim,
