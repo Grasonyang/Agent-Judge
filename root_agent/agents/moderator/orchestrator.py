@@ -21,6 +21,21 @@ skeptic_tool.name = "call_skeptic"
 devil_tool    = AgentTool(devil_agent)
 devil_tool.name = "call_devil"
 
+
+def _exit_if_end(callback_context, **_):
+    """若決策為 end，設定停止訊號並結束迴圈"""
+    state = callback_context.state
+    decision = state.get("next_decision", {})
+    next_speaker = getattr(decision, "next_speaker", None)
+    if next_speaker is None and isinstance(decision, dict):
+        next_speaker = decision.get("next_speaker")
+    if next_speaker == "end":
+        # 直接告知外層迴圈停止
+        callback_context.tool_context.actions.escalate = True
+        state["stop_signal"] = "exit_loop"
+        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
+    return None
+
 class NextTurnDecision(BaseModel):
     next_speaker: Literal["advocate", "skeptic", "devil", "end"] = Field(
         description="選擇下一位發言者；若結束，設為 'end'"
@@ -57,6 +72,8 @@ executor_agent = LlmAgent(
     tools=[advocate_tool, skeptic_tool, devil_tool],
     # no output_schema here because tools are used
     output_key="orchestrator_exec",
+    # 在執行前檢查是否需要立即結束
+    before_agent_callback=_exit_if_end,
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )

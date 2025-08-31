@@ -36,12 +36,24 @@ def _should_stop(state) -> bool:
 
 
 def _metrics_before_stop(callback_context, **_):
-    """在 stop_checker 執行前更新指標並視情況終止迴圈"""
+    """在 stop_checker 執行前更新指標，並檢查是否已有停止訊號"""
     state = callback_context.state
+    # 若 executor 已指示結束，直接跳過後續判斷
+    if state.get("stop_signal") == "exit_loop":
+        exit_loop(callback_context.tool_context)
+        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
     _update_metrics(state)
     if _should_stop(state):
         exit_loop(callback_context.tool_context)
         state["stop_signal"] = "exit_loop"
+        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
+    return None
+
+
+def _skip_if_stopped(callback_context, **_):
+    """在 stop_enforcer 執行前檢查是否已停止"""
+    if callback_context.state.get("stop_signal") == "exit_loop":
+        exit_loop(callback_context.tool_context)
         return types.Content(parts=[types.Part.from_text(text="exit_loop")])
     return None
 
@@ -77,6 +89,7 @@ stop_enforcer = LlmAgent(
     ),
     tools=[exit_loop],
     output_key="stop_enforced",
+    before_agent_callback=_skip_if_stopped,
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
