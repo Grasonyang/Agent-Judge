@@ -38,13 +38,12 @@ def _should_stop(state) -> bool:
 def _metrics_before_stop(callback_context, **_):
     """在 stop_checker 執行前更新指標，並檢查是否已有停止訊號"""
     state = callback_context.state
-    # 若 executor 已指示結束，直接跳過後續判斷
+    # 若已有人或邏輯標記要結束，僅回傳信號（不要直接呼叫工具）
     if state.get("stop_signal") == "exit_loop":
-        exit_loop(callback_context.tool_context)
         return types.Content(parts=[types.Part.from_text(text="exit_loop")])
     _update_metrics(state)
     if _should_stop(state):
-        exit_loop(callback_context.tool_context)
+        # 標記停用信號，實際呼叫 exit_loop 由 stop_enforcer 統一處理
         state["stop_signal"] = "exit_loop"
         return types.Content(parts=[types.Part.from_text(text="exit_loop")])
     return None
@@ -52,8 +51,8 @@ def _metrics_before_stop(callback_context, **_):
 
 def _skip_if_stopped(callback_context, **_):
     """在 stop_enforcer 執行前檢查是否已停止"""
+    # 若已標記停止，回傳停止信號；讓 stop_enforcer 的模型或工具呼叫統一處理
     if callback_context.state.get("stop_signal") == "exit_loop":
-        exit_loop(callback_context.tool_context)
         return types.Content(parts=[types.Part.from_text(text="exit_loop")])
     return None
 
@@ -62,14 +61,12 @@ stop_checker = LlmAgent(
     name="stop_checker",
     model="gemini-2.0-flash",
     instruction=(
-        "根據 debate_messages 判斷是否該結束：\n"
-        "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點。\n"
-        "若該結束，請使用提供的工具 'exit_loop' 來結束回合（必須以工具呼叫的方式發出，切勿只輸出文字 'exit_loop' 或 'exit_loop '）。\n"
-        "若不該結束，請只輸出純文字 continue（不含其他標點或空白）。\n"
-        "注意：模型回傳若為工具呼叫（exit_loop），系統會觸發 LoopAgent 停止；若只是輸出文字，請不要當作已經呼叫工具。\n"
-        "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
+    "根據 debate_messages 判斷是否該結束：\n"
+    "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點。\n"
+    "若該結束，請只回傳純文字 exit_loop（小寫、無標點與前後空白）；若不該結束，請回傳純文字 continue。\n"
+    "注意：不要嘗試呼叫任何工具；此步僅回傳字串供後續 enforcer 處理。\n"
+    "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
     ),
-    tools=[exit_loop],
     output_key="stop_signal",
     before_agent_callback=_metrics_before_stop,
     # planner removed to avoid sending thinking config to model

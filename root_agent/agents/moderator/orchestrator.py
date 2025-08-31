@@ -30,8 +30,7 @@ def _exit_if_end(callback_context, **_):
     if next_speaker is None and isinstance(decision, dict):
         next_speaker = decision.get("next_speaker")
     if next_speaker == "end":
-        # 直接告知外層迴圈停止
-        callback_context.tool_context.actions.escalate = True
+        # 標記停用信號，由統一的 stop_enforcer 來觸發實際的工具呼叫
         state["stop_signal"] = "exit_loop"
         return types.Content(parts=[types.Part.from_text(text="exit_loop")])
     return None
