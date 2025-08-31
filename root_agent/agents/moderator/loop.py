@@ -1,5 +1,4 @@
 from google.adk.agents import LoopAgent, LlmAgent
-from google.adk.planners import BuiltInPlanner
 from google.genai import types
 
 # 用一個小工具來「跳出」Loop（ADK 常見寫法）
@@ -8,20 +7,59 @@ def exit_loop(tool_context):
     tool_context.actions.escalate = True  # 告訴 LoopAgent 停止
     return {"ok": True}
 
+# ---- 變化量計算工具 ----
+def _update_metrics(state):
+    """更新並寫入爭點、可信度與證據的變化量"""
+    prev_points = state.get("prev_dispute_points", 0)
+    curr_points = state.get("dispute_points", 0)
+    state["delta_dispute_points"] = curr_points - prev_points
+    state["prev_dispute_points"] = curr_points
+
+    prev_cred = state.get("prev_credibility", 0.0)
+    curr_cred = state.get("credibility", 0.0)
+    state["delta_credibility"] = curr_cred - prev_cred
+    state["prev_credibility"] = curr_cred
+
+    prev_ev = state.get("prev_evidence_count", 0)
+    curr_ev = len(state.get("evidence", []))
+    state["new_evidence_gain"] = curr_ev - prev_ev
+    state["prev_evidence_count"] = curr_ev
+
+
+def _should_stop(state) -> bool:
+    """判斷變化量是否觸發門檻"""
+    return (
+        state.get("delta_dispute_points", 0) <= 0
+        or state.get("delta_credibility", 0) <= 0
+        or state.get("new_evidence_gain", 0) <= 0
+    )
+
+
+def _metrics_before_stop(callback_context, **_):
+    """在 stop_checker 執行前更新指標並視情況終止迴圈"""
+    state = callback_context.state
+    _update_metrics(state)
+    if _should_stop(state):
+        exit_loop(callback_context.tool_context)
+        state["stop_signal"] = "exit_loop"
+        return types.Content(parts=[types.Part.from_text(text="exit_loop")])
+    return None
+
 # 檢查是否應該停止（例如輪數或無新資訊），由 LLM 產生信號並呼叫 exit_loop
 stop_checker = LlmAgent(
     name="stop_checker",
     model="gemini-2.0-flash",
     instruction=(
-    "根據 debate_messages 判斷是否該結束：\n"
-    "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點時。\n"
-    "若該結束，請使用提供的工具 'exit_loop' 來結束回合（必須以工具呼叫的方式發出，切勿只輸出文字 'exit_loop' 或 'exit_loop '）。\n"
-    "若不該結束，請只輸出純文字 continue（不含其他標點或空白）。\n"
-    "注意：模型回傳若為工具呼叫（exit_loop），系統會觸發 LoopAgent 停止；若只是輸出文字，請不要當作已經呼叫工具。\n"
-    "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
+        "根據 debate_messages 判斷是否該結束：\n"
+        "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點。\n"
+        "若該結束，請使用提供的工具 'exit_loop' 來結束回合（必須以工具呼叫的方式發出，切勿只輸出文字 'exit_loop' 或 'exit_loop '）。\n"
+        "若不該結束，請只輸出純文字 continue（不含其他標點或空白）。\n"
+        "注意：模型回傳若為工具呼叫（exit_loop），系統會觸發 LoopAgent 停止；若只是輸出文字，請不要當作已經呼叫工具。\n"
+        "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
     ),
     tools=[exit_loop],
     output_key="stop_signal",
+    before_agent_callback=_metrics_before_stop,
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
@@ -33,7 +71,7 @@ stop_enforcer = LlmAgent(
     model="gemini-2.0-flash",
     instruction=(
         "檢查 state['stop_signal'] 的內容（請先去除首尾空白並轉為小寫）：\n"
-        "- 若其為 'exit_loop'、'exit' 或 'end'（或包含 'exit' 字串），請呼叫提供的工具 exit_loop 以結束回合；\n"
+        "- 若 stop_signal 指示結束，請呼叫提供的工具 exit_loop 以結束回合；\n"
         "- 否則請不要呼叫任何工具，只回傳純文字 'continue'（或回傳空字串亦可）。\n"
         "CURRENT stop_signal: (the current value stored in state['stop_signal'])"
     ),
