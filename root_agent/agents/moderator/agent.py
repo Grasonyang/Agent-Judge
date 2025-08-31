@@ -1,3 +1,5 @@
+"""主持人代理：整合原 loop 與 stop_utils 的邏輯"""
+
 from typing import Literal, List, Dict, Any
 from pydantic import BaseModel, Field
 import json
@@ -6,7 +8,7 @@ from google.adk.tools.agent_tool import AgentTool
 from google.genai import types
 
 # 辯論紀錄工具
-from root_agent.tools.debate_log import Turn, append_turn
+# 目前未使用辯論紀錄工具，如需紀錄可於此導入
 
 # 引入三方角色
 from root_agent.agents.advocate.agent import advocate_agent
