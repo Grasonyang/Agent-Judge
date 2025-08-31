@@ -2,7 +2,7 @@ from google.adk.agents import SequentialAgent
 
 # === 匯入子代理 ===
 from root_agent.agents import curator_agent, historian_agent
-from root_agent.agents.moderator.loop import referee_loop
+from root_agent.agents.moderator.agent import referee_loop
 from root_agent.agents.social.agent import social_agent
 from root_agent.agents.jury.agent import jury_agent
 from root_agent.agents.synthesizer.agent import synthesizer_agent

@@ -7,8 +7,7 @@ from .curator.agent import curator_agent
 from .historian.agent import historian_agent
 from .devil.agent import devil_agent
 from .jury.agent import jury_agent
-from .moderator.orchestrator import orchestrator_agent
-from .moderator.loop import referee_loop
+from .moderator.agent import orchestrator_agent, referee_loop
 from .skeptic.agent import skeptic_agent
 from .synthesizer.agent import synthesizer_agent
 from .social.agent import social_agent

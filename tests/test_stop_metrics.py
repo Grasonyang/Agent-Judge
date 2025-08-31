@@ -1,15 +1,15 @@
 # 單元測試：驗證迴圈停止邏輯
 import ast, pathlib, pytest
 
-loop_path = pathlib.Path(__file__).resolve().parent.parent / 'root_agent' / 'agents' / 'moderator' / 'loop.py'
-source = loop_path.read_text()
+tools_path = pathlib.Path(__file__).resolve().parent.parent / 'root_agent' / 'agents' / 'moderator' / 'tools.py'
+source = tools_path.read_text()
 module_ast = ast.parse(source)
-func_defs = [n for n in module_ast.body if isinstance(n, ast.FunctionDef) and n.name in {'_update_metrics', '_should_stop'}]
+func_defs = [n for n in module_ast.body if isinstance(n, ast.FunctionDef) and n.name in {'update_metrics', 'should_stop'}]
 module = ast.Module(body=func_defs, type_ignores=[])
 namespace = {}
-exec(compile(module, str(loop_path), 'exec'), namespace)
-_update_metrics = namespace['_update_metrics']
-_should_stop = namespace['_should_stop']
+exec(compile(module, str(tools_path), 'exec'), namespace)
+_update_metrics = namespace['update_metrics']
+_should_stop = namespace['should_stop']
 
 
 def test_metrics_stop_logic():

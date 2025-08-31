@@ -1,7 +1,7 @@
 from typing import Literal, List, Dict, Any
 from pydantic import BaseModel, Field
 import json
-from google.adk.agents import LlmAgent, SequentialAgent
+from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
 from google.adk.tools.agent_tool import AgentTool
 from google.genai import types
 
@@ -14,7 +14,7 @@ from root_agent.agents.skeptic.agent import skeptic_agent
 from root_agent.agents.devil.agent import devil_agent
 
 # 統一設定停用訊號的工具
-from .stop_utils import mark_stop
+from .tools import mark_stop, exit_loop, deterministic_stop_callback
 
 # 把子代理包成可被呼叫的工具（a2a / a3a）
 advocate_tool = AgentTool(advocate_agent)
@@ -84,4 +84,30 @@ executor_agent = LlmAgent(
 orchestrator_agent = SequentialAgent(
     name="moderator_orchestrator",
     sub_agents=[decision_agent, executor_agent],
+)
+
+
+# ---- stop_checker (LLM) ----
+stop_checker = LlmAgent(
+    name="stop_checker",
+    model="gemini-2.0-flash",
+    tools=[exit_loop],
+    instruction=(
+        "根據 debate_messages 判斷是否該結束：\n"
+        "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點。\n"
+        "若該結束，請呼叫提供的工具 exit_loop 以停止迴圈；若不該結束，請回傳純文字 continue（或回傳空字串）。\n"
+        "注意：只有在確定要結束時才呼叫 exit_loop 工具。\n"
+        "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
+    ),
+    output_key="stop_signal",
+    before_agent_callback=deterministic_stop_callback,
+    generate_content_config=types.GenerateContentConfig(temperature=0.0),
+)
+
+
+# ---- referee loop (LoopAgent) ----
+referee_loop = LoopAgent(
+    name="debate_referee_loop",
+    sub_agents=[orchestrator_agent, stop_checker],
+    max_iterations=3,
 )
