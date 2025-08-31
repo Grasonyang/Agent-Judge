@@ -11,7 +11,7 @@ from google.genai import types
 from google.adk.planners import BuiltInPlanner
 
 # 辯論紀錄讀寫
-from .agents.debate_log import load_debate_log, save_debate_log, Turn
+from root_agent.agents.debate_log import load_debate_log, save_debate_log, Turn
 
 # 知識庫 API
 from .knowledge_base import (
@@ -23,12 +23,12 @@ from .knowledge_base import (
 )
 
 # === 匯入子代理 ===
-from .agents import curator_agent, historian_agent
-from .agents.moderator.loop import referee_loop          # LoopAgent（主持人回合制）
-from .agents.social.agent import social_agent
-from .agents.jury.agent import jury_agent
-from .agents.synthesizer.agent import synthesizer_agent
-from .agents.synthesizer import render_final_report_md   # 工具：JSON → Markdown
+from root_agent.agents import curator_agent, historian_agent
+from root_agent.agents.moderator.loop import referee_loop          # LoopAgent（主持人回合制）
+from root_agent.agents.social.agent import social_agent
+from root_agent.agents.jury.agent import jury_agent
+from root_agent.agents.synthesizer.agent import synthesizer_agent
+from root_agent.agents.synthesizer import render_final_report_md   # 工具：JSON → Markdown
 from evaluation.metrics import evaluate_truthfulness, evaluate_consistency
 
 # =============== Root 入口參數 / 輸出 ===============
