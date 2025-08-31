@@ -2,13 +2,12 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, SequentialAgent
-from google.adk.planners import BuiltInPlanner
 from google.genai import types
 
 # ✨ 內建搜尋工具
 from google.adk.tools.google_search_tool import GoogleSearchTool
 # 採用絕對匯入以確保 Evidence 類別在各層級皆可正確引用
-from root_agent.agents.evidence import Evidence
+from root_agent.tools.evidence import Evidence
 
 
 # -------- Schema（輸入/輸出）---------
@@ -88,15 +87,3 @@ curator_agent = SequentialAgent(
     sub_agents=[curator_tool_agent, curator_schema_agent],
 )
 
-
-# -------- 使用方式（範例）---------
-# async def demo(session):
-#     payload = {
-#         "query": "台積電 先進封裝 CoWoS 最新產能",
-#         "top_k": 5,
-#         "site": None,  # 或 "site:reuters.com"
-#     }
-#     session.state.update(payload)
-#     await curator_agent.run_async(session)
-#     # 取結果：
-#     # state["curation"] 會是 CuratorOutput schema 的 JSON

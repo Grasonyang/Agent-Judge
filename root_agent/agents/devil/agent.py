@@ -4,7 +4,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
-from ..evidence import Evidence
+from root_agent.tools.evidence import Evidence
 
 class DevilOutput(BaseModel):
     stance: str = Field(description="極端質疑的核心立場，單句")

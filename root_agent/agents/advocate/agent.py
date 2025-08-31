@@ -2,10 +2,9 @@ from typing import List
 from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, SequentialAgent
-from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
-from ..evidence import Evidence
+from root_agent.tools.evidence import Evidence
 
 
 # ---- 讀 Curator 的證據結構（最小鏡像；如你已有型別可改 from ... import） ----

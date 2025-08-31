@@ -1,7 +1,6 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
-from google.adk.planners import BuiltInPlanner
 from google.genai import types
 
 # ===== 報告 Schema（ONLY JSON）=====

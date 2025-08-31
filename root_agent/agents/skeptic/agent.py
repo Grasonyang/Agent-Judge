@@ -5,7 +5,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
-from root_agent.agents.evidence import Evidence  # 使用絕對匯入以避免路徑問題
+from root_agent.tools.evidence import Evidence  # 使用絕對匯入以避免路徑問題
 
 
 # ---- 方便比對 Advocate / Curator 內容 ----
@@ -62,29 +62,7 @@ skeptic_schema_agent = LlmAgent(
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
-
-# Public skeptic pipeline with simple retry for schema validation
-class SkepticSequentialAgent(SequentialAgent):
-    async def run_async(self, session):
-        # 先執行工具代理人
-        await self.sub_agents[0].run_async(session)
-
-        last_error = None
-        # 最多嘗試兩次產生符合 Schema 的結果
-        for _ in range(2):
-            try:
-                await self.sub_agents[1].run_async(session)
-                # 驗證是否符合 SkepticOutput
-                SkepticOutput.model_validate(session.state["skepticism"])
-                return
-            except (ValidationError, ValueError, KeyError) as e:
-                # 記錄錯誤並重試
-                last_error = e
-        # 若仍失敗則拋出錯誤
-        raise last_error
-
-
-skeptic_agent = SkepticSequentialAgent(
+skeptic_agent = SequentialAgent(
     name="skeptic",
     sub_agents=[skeptic_tool_agent, skeptic_schema_agent],
 )
