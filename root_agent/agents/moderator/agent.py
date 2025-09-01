@@ -37,36 +37,31 @@ def _log_turn(state: Dict[str, Any], speaker: str, output) -> None:
     append_turn(log_path, turn)
 
 
-def advocate_wrapper(tool_context):
-    result = advocate_agent(tool_context)
-    output = tool_context.state.get("advocacy")
-    if output:
-        _log_turn(tool_context.state, "advocate", output)
-    return result
+# 工具名稱與辯論記錄欄位對應
+LOG_MAP = {
+    "call_advocate": ("advocate", "advocacy"),
+    "call_skeptic": ("skeptic", "skepticism"),
+    "call_devil": ("devil", "devil_turn"),
+}
 
 
-def skeptic_wrapper(tool_context):
-    result = skeptic_agent(tool_context)
-    output = tool_context.state.get("skepticism")
-    if output:
-        _log_turn(tool_context.state, "skeptic", output)
-    return result
-
-
-def devil_wrapper(tool_context):
-    result = devil_agent(tool_context)
-    output = tool_context.state.get("devil_turn")
-    if output:
-        _log_turn(tool_context.state, "devil", output)
+def _log_tool_output(tool, _args, tool_context, result):
+    """工具執行後記錄輸出"""
+    info = LOG_MAP.get(tool.name)
+    if info:
+        speaker, key = info
+        output = tool_context.state.get(key)
+        if output:
+            _log_turn(tool_context.state, speaker, output)
     return result
 
 
 # 把子代理包成可被呼叫的工具（a2a / a3a）
-advocate_tool = AgentTool(advocate_wrapper)
+advocate_tool = AgentTool(advocate_agent)
 advocate_tool.name = "call_advocate"
-skeptic_tool = AgentTool(skeptic_wrapper)
+skeptic_tool = AgentTool(skeptic_agent)
 skeptic_tool.name = "call_skeptic"
-devil_tool = AgentTool(devil_wrapper)
+devil_tool = AgentTool(devil_agent)
 devil_tool.name = "call_devil"
 
 
@@ -119,6 +114,7 @@ executor_agent = LlmAgent(
         "工具已自動更新 state['debate_messages']，請將取得的字串原封不動地回傳。"
     ),
     tools=[advocate_tool, skeptic_tool, devil_tool],
+    after_tool_callback=_log_tool_output,
     # no output_schema here because tools are used
     output_key="orchestrator_exec",
     # 在執行前檢查是否需要立即結束
