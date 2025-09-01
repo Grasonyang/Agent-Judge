@@ -2,6 +2,8 @@
 
 from google.genai import types
 
+from root_agent.tools import load_debate_log
+
 
 def mark_stop(state):
     """標記需要停用並回傳統一訊號（供 callback 使用以觸發後續處理）"""
@@ -23,6 +25,15 @@ def exit_loop(tool_context):
 
 def update_metrics(state):
     """更新並寫入爭點、可信度與證據的變化量（提取自原 loop.py）"""
+    # 若提供辯論紀錄路徑，先載入並更新目前指標
+    log_path = state.get("debate_log_path")
+    if log_path:
+        turns = load_debate_log(log_path)
+        state["dispute_points"] = len({t.claim for t in turns if t.claim})
+        confidences = [t.confidence for t in turns if t.confidence is not None]
+        state["credibility"] = sum(confidences) / len(confidences) if confidences else 0.0
+        state["evidence"] = [ev for t in turns for ev in t.evidence]
+
     prev_points = state.get("prev_dispute_points", 0)
     curr_points = state.get("dispute_points", 0)
     state["delta_dispute_points"] = curr_points - prev_points
