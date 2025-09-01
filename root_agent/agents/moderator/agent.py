@@ -45,8 +45,12 @@ LOG_MAP = {
 }
 
 
-def _log_tool_output(tool, _args, tool_context, result):
-    """工具執行後記錄輸出"""
+def _log_tool_output(tool, args, tool_context, result, **_):
+    """工具執行後記錄輸出
+
+    The ADK runner may pass the tool args using the keyword name `args`.
+    Accept extra kwargs for forward compatibility.
+    """
     info = LOG_MAP.get(tool.name)
     if info:
         speaker, key = info

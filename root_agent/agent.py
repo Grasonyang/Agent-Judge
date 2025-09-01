@@ -11,9 +11,29 @@ from root_agent.agents.synthesizer.agent import synthesizer_agent
 
 # =============== Root Pipeline ===============
 # 固定順序：Curator → Historian → 主持人回合制（正/反/極端）→ Social → Jury → Synthesizer(JSON)
-def _init_session(ctx):
-    """新 session 開始時初始化辯論紀錄"""
-    initialize_debate_log("debate_log.json", ctx.state, reset=True)
+from google.adk.agents import LlmAgent
+
+
+# 初始化 session 的輕量 agent：使用 before_agent_callback 寫入 state
+def _before_init_session(agent_context=None, **_):
+    """在 agent 執行前初始化辯論紀錄（寫入 state）。
+
+    Accepts either a callback context or no arguments (some callers invoke the
+    callback without parameters)."""
+    if agent_context is None:
+        # no context provided; nothing to mutate
+        return None
+    initialize_debate_log("debate_log.json", agent_context.state, reset=True)
+
+
+_init_session = LlmAgent(
+    name="init_session",
+    model="gemini-2.5-flash",
+    instruction=("初始化 session（此代理僅用於在執行前設定 state，無需輸出）。"),
+    # 不實際呼叫 tools 或產生 schema，僅利用 before_agent_callback
+    before_agent_callback=_before_init_session,
+    output_key="_init_session",
+)
 
 
 root_agent = SequentialAgent(
