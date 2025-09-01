@@ -29,6 +29,9 @@ historian_llm_agent = LlmAgent(
         "請僅輸出符合 HistorianOutput schema 的 JSON，不要額外文字。"
     ),
     output_schema=HistorianOutput,
+    # 禁止向其他代理傳輸結果
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="history",
     generate_content_config=types.GenerateContentConfig(temperature=0.2),
 )

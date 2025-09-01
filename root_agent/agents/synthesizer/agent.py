@@ -56,6 +56,9 @@ synthesizer_agent = LlmAgent(
         "5) appendix_links 可放『辯論日誌』或外部來源列表連結（若有）。"
     ),
     output_schema=FinalReport,
+    # 禁止傳遞以避免 output_schema 衝突
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="final_report_json",
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),

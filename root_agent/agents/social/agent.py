@@ -66,6 +66,9 @@ _social_aggregator = LlmAgent(
         "僅輸出符合 SocialLog schema 的 JSON。"
     ),
     output_schema=SocialLog,
+    # 禁止傳遞以符合 output_schema 規定
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="social_log",
 )
 

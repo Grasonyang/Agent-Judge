@@ -75,6 +75,9 @@ curator_schema_agent = LlmAgent(
     # no tools here
     input_schema=CuratorInput,
     output_schema=CuratorOutput,
+    # 禁止輸出傳遞以避免與 schema 衝突
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="curation",
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.4),

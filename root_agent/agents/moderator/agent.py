@@ -100,6 +100,9 @@ decision_agent = LlmAgent(
     ),
     # no tools
     output_schema=NextTurnDecision,
+    # 禁止向父層或同儕傳遞以符合 schema 限制
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="next_decision",
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
