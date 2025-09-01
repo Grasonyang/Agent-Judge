@@ -58,6 +58,9 @@ skeptic_schema_agent = LlmAgent(
     ),
     # 無需工具
     output_schema=SkepticOutput,
+    # output_schema 與 transfer 不相容，需禁止傳遞
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="skepticism",
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )

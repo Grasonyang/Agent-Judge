@@ -45,6 +45,9 @@ jury_agent = LlmAgent(
         "嚴格輸出 JSON，必須符合 JuryOutput schema；不要多餘文字。"
     ),
     output_schema=JuryOutput,
+    # 禁止輸出傳遞，避免 schema 衝突
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="jury_result",
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),

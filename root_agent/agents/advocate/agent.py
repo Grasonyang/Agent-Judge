@@ -52,6 +52,9 @@ advocate_schema_agent = LlmAgent(
     ),
     # no tools here
     output_schema=AdvocateOutput,
+    # 設為禁止傳遞以符合 output_schema 限制
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="advocacy",
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.4),

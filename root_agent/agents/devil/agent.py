@@ -35,6 +35,9 @@ devil_schema_agent = LlmAgent(
     ),
     # no tools here
     output_schema=DevilOutput,
+    # 禁止向父層或同儕傳遞輸出
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     output_key="devil_turn",
     # planner removed to avoid sending unsupported thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
