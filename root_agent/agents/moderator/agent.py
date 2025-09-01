@@ -2,13 +2,11 @@
 
 from typing import Literal, List, Dict, Any
 from pydantic import BaseModel, Field
-import json
 from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
 from google.adk.tools.agent_tool import AgentTool
 from google.genai import types
 
-# 辯論紀錄工具
-# 目前未使用辯論紀錄工具，如需紀錄可於此導入
+from root_agent.tools import Turn, append_turn, initialize_debate_log
 
 # 引入三方角色
 from root_agent.agents.advocate.agent import advocate_agent
@@ -18,12 +16,57 @@ from root_agent.agents.devil.agent import devil_agent
 # 統一設定停用訊號的工具
 from .tools import mark_stop, exit_loop, deterministic_stop_callback
 
+# 辯論紀錄檔路徑
+LOG_PATH = "debate_log.json"
+
+
+def _log_turn(state: Dict[str, Any], speaker: str, output) -> None:
+    """將角色輸出寫入辯論紀錄"""
+    log_path = state.get("debate_log_path")
+    if not log_path:
+        initialize_debate_log(LOG_PATH, state, reset=True)
+        log_path = state.get("debate_log_path")
+    claim = getattr(output, "thesis", None) or getattr(output, "counter_thesis", None) or getattr(output, "stance", None)
+    turn = Turn(
+        speaker=speaker,
+        content=output.model_dump_json(ensure_ascii=False),
+        claim=claim,
+        confidence=getattr(output, "confidence", None),
+        evidence=getattr(output, "evidence", []),
+    )
+    append_turn(log_path, turn)
+
+
+def advocate_wrapper(tool_context):
+    result = advocate_agent(tool_context)
+    output = tool_context.state.get("advocacy")
+    if output:
+        _log_turn(tool_context.state, "advocate", output)
+    return result
+
+
+def skeptic_wrapper(tool_context):
+    result = skeptic_agent(tool_context)
+    output = tool_context.state.get("skepticism")
+    if output:
+        _log_turn(tool_context.state, "skeptic", output)
+    return result
+
+
+def devil_wrapper(tool_context):
+    result = devil_agent(tool_context)
+    output = tool_context.state.get("devil_turn")
+    if output:
+        _log_turn(tool_context.state, "devil", output)
+    return result
+
+
 # 把子代理包成可被呼叫的工具（a2a / a3a）
-advocate_tool = AgentTool(advocate_agent)
+advocate_tool = AgentTool(advocate_wrapper)
 advocate_tool.name = "call_advocate"
-skeptic_tool  = AgentTool(skeptic_agent)
+skeptic_tool = AgentTool(skeptic_wrapper)
 skeptic_tool.name = "call_skeptic"
-devil_tool    = AgentTool(devil_agent)
+devil_tool = AgentTool(devil_wrapper)
 devil_tool.name = "call_devil"
 
 
