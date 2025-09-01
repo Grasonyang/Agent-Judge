@@ -111,5 +111,5 @@ stop_checker = LlmAgent(
 referee_loop = LoopAgent(
     name="debate_referee_loop",
     sub_agents=[orchestrator_agent, stop_checker],
-    max_iterations=3,
+    max_iterations=12,
 )
