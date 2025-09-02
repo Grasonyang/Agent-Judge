@@ -72,8 +72,8 @@ _social_aggregator = LlmAgent(
     output_key="social_log",
 )
 
-# 公開的 social_agent，先平行模擬，再聚合結果
-social_agent = SequentialAgent(
-    name="social",
+# 公開的 social_summary_agent，先平行模擬，再聚合結果
+social_summary_agent = SequentialAgent(
+    name="social_summary",
     sub_agents=[_social_parallel, _social_aggregator],
 )
