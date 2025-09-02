@@ -64,8 +64,10 @@ flowchart LR
       EC((Echo Chamber))
       INF((Influencer))
       DIS[Disrupter]
+      SN[(state["social_noise"])]
       EC -- 放大 --> INF
       DIS -- 注入假訊息 --> EC
+      DIS -->|噪音寫入| SN
     end
   end
   subgraph III[階段三：裁決與整合]
@@ -115,6 +117,15 @@ flowchart LR
   - `PolarizationIndex`（群際距離/群內方差）、
   - `ViralityScore`（基本傳染數 R₀ 類比）、
   - `ManipulationRisk`（易受操弄度）。
+
+### Social Noise 噪音注入
+```mermaid
+flowchart LR
+  EC(EchoChamber) --> INF(Influencer) --> DIS(Disrupter)
+  DIS --> EC
+  DIS --> SN[(state["social_noise"])]
+```
+EchoChamber 先呈現各社群群組的回應，Influencer 依此放大或扭轉訊息，Disrupter 再根據風向注入最易擴散的噪音。該噪音會即時寫入 `state["social_noise"]`，供裁決層評估傳播風險與後續策略。
 
 ---
 
@@ -216,9 +227,11 @@ for round in range(MAX_ROUNDS):
     if stop_condition(DebateLog):
         break
 
-SocialLog.simulate(EchoChamber, Influencer, Disrupter)
-score = Jury.score(DebateLog, SocialLog)
-report = Synthesizer.write(DebateLog, SocialLog, score)
+social_noise = Disrupter.inject(EchoChamber)
+state["social_noise"] = social_noise
+social_log = SocialLog.simulate(EchoChamber, Influencer, social_noise)
+score = Jury.score(DebateLog, social_log)
+report = Synthesizer.write(DebateLog, social_log, score)
 ```
 
 ---
