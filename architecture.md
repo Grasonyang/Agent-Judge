@@ -79,11 +79,14 @@ flowchart LR
     SL --> J & SY
     J -- 多維評分 --> SY
   end
+  INF --> SL
   subgraph IV[階段四：最終產出]
+    EV[(Evidence)]
+    ECHK{Evidence Check}
     RPT[[深度分析報告]]
   end
   KB --> M & EC
-  SY --> RPT
+  SY --> EV --> ECHK --> RPT
 ```
 
 ---
