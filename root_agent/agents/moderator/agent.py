@@ -12,6 +12,7 @@ from root_agent.tools import Turn, append_turn, initialize_debate_log
 from root_agent.agents.advocate.agent import advocate_agent
 from root_agent.agents.skeptic.agent import skeptic_agent
 from root_agent.agents.devil.agent import devil_agent
+from root_agent.agents.social_noise.agent import social_noise_agent
 
 # 統一設定停用訊號的工具
 from .tools import mark_stop, exit_loop, deterministic_stop_callback
@@ -96,7 +97,7 @@ decision_agent = LlmAgent(
     instruction=(
         "你是主持人的決策模組。目標：在維持秩序、避免重複論點、推進爭點澄清的前提下，"
         "輸出一個 NextTurnDecision JSON（next_speaker: 'advocate'|'skeptic'|'devil'|'end'）以及簡短 rationale。\n"
-        "輸入：\n- CURATION: {curation}\n- MESSAGES(JSON array): (the current debate messages stored in state['debate_messages'])\n\n"
+        "輸入：\n- CURATION: {curation}\n- SOCIAL_NOISE: {social_noise}\n- MESSAGES(JSON array): (the current debate messages stored in state['debate_messages'])\n\n"
         "僅產生 NextTurnDecision，不呼叫任何工具。"
     ),
     # no tools
@@ -158,6 +159,6 @@ stop_checker = LlmAgent(
 # ---- referee loop (LoopAgent) ----
 referee_loop = LoopAgent(
     name="debate_referee_loop",
-    sub_agents=[orchestrator_agent, stop_checker],
+    sub_agents=[social_noise_agent, orchestrator_agent, stop_checker],
     max_iterations=12,
 )
