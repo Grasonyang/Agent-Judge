@@ -65,11 +65,15 @@ def deterministic_stop_callback(callback_context, **_):
     如果條件達成，會呼叫 mark_stop(state) 並回傳其結果，否則回傳 None。
     """
     state = callback_context.state
-    # 如果已有人或先前邏輯標記要結束，直接回傳統一訊號
+    # 若已標記結束或確實該停，標記並要求迴圈退出
     if state.get("stop_signal") == "exit_loop":
-        return mark_stop(state)
+        result = mark_stop(state)
+        callback_context.actions.escalate = True  # 告知 LoopAgent 停止
+        return result
     update_metrics(state)
     if should_stop(state):
-        return mark_stop(state)
+        result = mark_stop(state)
+        callback_context.actions.escalate = True  # 告知 LoopAgent 停止
+        return result
     return None
 
