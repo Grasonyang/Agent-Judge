@@ -1,14 +1,6 @@
-"""主持人相關工具：整合原 loop 與 stop_utils 的功能"""
-
-from google.genai import types
+"""主持人相關工具：提供退出迴圈與統計指標"""
 
 from root_agent.tools import load_debate_log
-
-
-def mark_stop(state):
-    """標記需要停用並回傳統一訊號（供 callback 使用以觸發後續處理）"""
-    state["stop_signal"] = "exit_loop"
-    return types.Content(parts=[types.Part.from_text(text="exit_loop")])
 
 
 def exit_loop(tool_context):
@@ -58,22 +50,4 @@ def should_stop(state) -> bool:
         or state.get("new_evidence_gain", 0) <= 0
     )
 
-
-def deterministic_stop_callback(callback_context, **_):
-    """Deterministic callback 用於在 stop_checker 或其他 agent 執行前檢查並直接標記停止。
-
-    如果條件達成，會呼叫 mark_stop(state) 並回傳其結果，否則回傳 None。
-    """
-    state = callback_context.state
-    # 若已標記結束或確實該停，標記並要求迴圈退出
-    if state.get("stop_signal") == "exit_loop":
-        result = mark_stop(state)
-        callback_context.actions.escalate = True  # 告知 LoopAgent 停止
-        return result
-    update_metrics(state)
-    if should_stop(state):
-        result = mark_stop(state)
-        callback_context.actions.escalate = True  # 告知 LoopAgent 停止
-        return result
-    return None
 

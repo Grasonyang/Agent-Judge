@@ -14,8 +14,8 @@ from root_agent.agents.skeptic.agent import skeptic_agent
 from root_agent.agents.devil.agent import devil_agent
 from root_agent.agents.social_noise.agent import social_noise_agent
 
-# 統一設定停用訊號的工具
-from .tools import mark_stop, exit_loop, deterministic_stop_callback
+# 統一由 stop_checker 呼叫退出工具
+from .tools import exit_loop
 
 # 辯論紀錄檔路徑
 LOG_PATH = "debate_log.json"
@@ -73,20 +73,6 @@ devil_tool = AgentTool(devil_agent)
 devil_tool.name = "call_devil"
 
 
-def _exit_if_end(callback_context, **_):
-    """若決策為 end，設定停止訊號並結束迴圈"""
-    state = callback_context.state
-    decision = state.get("next_decision", {})
-    next_speaker = getattr(decision, "next_speaker", None)
-    if next_speaker is None and isinstance(decision, dict):
-        next_speaker = decision.get("next_speaker")
-    if next_speaker == "end":
-        # 若決策為結束，統一由工具標記停用訊號並讓 LoopAgent 立即退出
-        result = mark_stop(state)
-        callback_context.actions.escalate = True  # 標記需往上冒泡停止迴圈
-        return result
-    return None
-
 class NextTurnDecision(BaseModel):
     next_speaker: Literal["advocate", "skeptic", "devil", "end"] = Field(
         description="選擇下一位發言者；若結束，設為 'end'"
@@ -127,8 +113,6 @@ executor_agent = LlmAgent(
     after_tool_callback=_log_tool_output,
     # no output_schema here because tools are used
     output_key="orchestrator_exec",
-    # 在執行前檢查是否需要立即結束
-    before_agent_callback=_exit_if_end,
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
@@ -149,12 +133,11 @@ stop_checker = LlmAgent(
     instruction=(
         "根據 debate_messages 判斷是否該結束：\n"
         "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點。\n"
-        "若該結束，請呼叫提供的工具 exit_loop 以停止迴圈；若不該結束，請回傳純文字 continue（或回傳空字串）。\n"
-        "注意：只有在確定要結束時才呼叫 exit_loop 工具。\n"
-        "MESSAGES:\n(the current debate messages stored in state['debate_messages'])"
+        "若決策模組 next_decision.next_speaker 為 'end'，務必呼叫提供的工具 exit_loop。\n"
+        "若不該結束，請回傳純文字 continue（或回傳空字串）。\n"
+        "MESSAGES:\n{debate_messages}\nNEXT_DECISION:\n{next_decision}"
     ),
     output_key="stop_signal",
-    before_agent_callback=deterministic_stop_callback,
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
