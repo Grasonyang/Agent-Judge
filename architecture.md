@@ -64,7 +64,7 @@ flowchart LR
       EC((Echo Chamber))
       INF((Influencer))
       DIS[Disrupter]
-      SN[(state["social_noise"])]
+      SN["state['social_noise']"]
       EC -- 放大 --> INF
       DIS -- 注入假訊息 --> EC
       DIS -->|噪音寫入| SN
@@ -126,7 +126,7 @@ flowchart LR
 flowchart LR
   EC(EchoChamber) --> INF(Influencer) --> DIS(Disrupter)
   DIS --> EC
-  DIS --> SN[(state["social_noise"])]
+  DIS --> SN["state['social_noise']"]
 ```
 EchoChamber 先呈現各社群群組的回應，Influencer 依此放大或扭轉訊息，Disrupter 再根據風向注入最易擴散的噪音。該噪音會即時寫入 `state["social_noise"]`，供裁決層評估傳播風險與後續策略。
 
