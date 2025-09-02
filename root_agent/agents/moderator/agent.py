@@ -1,6 +1,7 @@
 """主持人代理：整合原 loop 與 stop_utils 的邏輯"""
 
 from typing import Literal, List, Dict, Any
+import json
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
 from google.adk.tools.agent_tool import AgentTool
@@ -27,13 +28,35 @@ def _log_turn(state: Dict[str, Any], speaker: str, output) -> None:
     if not log_path:
         initialize_debate_log(LOG_PATH, state, reset=True)
         log_path = state.get("debate_log_path")
-    claim = getattr(output, "thesis", None) or getattr(output, "counter_thesis", None) or getattr(output, "stance", None)
+    # helper to access either pydantic models or plain dicts
+    def _get(obj, key, default=None):
+        if obj is None:
+            return default
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
+    claim = _get(output, "thesis") or _get(output, "counter_thesis") or _get(output, "stance")
+
+    # produce a JSON string for the content. Support BaseModel, dict, str, and fall back to json.dumps
+    if hasattr(output, "model_dump_json"):
+        content = output.model_dump_json(ensure_ascii=False)
+    elif isinstance(output, dict):
+        content = json.dumps(output, ensure_ascii=False)
+    elif isinstance(output, str):
+        content = output
+    else:
+        try:
+            content = json.dumps(output, default=str, ensure_ascii=False)
+        except Exception:
+            content = str(output)
+
     turn = Turn(
         speaker=speaker,
-        content=output.model_dump_json(ensure_ascii=False),
+        content=content,
         claim=claim,
-        confidence=getattr(output, "confidence", None),
-        evidence=getattr(output, "evidence", []),
+        confidence=_get(output, "confidence"),
+        evidence=_get(output, "evidence", []),
     )
     append_turn(log_path, turn)
 
@@ -135,11 +158,24 @@ stop_checker = LlmAgent(
         "規則：達到 max_turns 或連續兩輪沒有新增實質證據/新觀點。\n"
         "若決策模組 next_decision.next_speaker 為 'end'，務必呼叫提供的工具 exit_loop。\n"
         "若不該結束，請回傳純文字 continue（或回傳空字串）。\n"
-        "MESSAGES:\n{debate_messages}\nNEXT_DECISION:\n{next_decision}"
+    "MESSAGES:\n(the current debate messages are available in state['debate_messages'])\n"
+    "NEXT_DECISION:\n(the current moderator decision is available in state['next_decision'])"
     ),
     output_key="stop_signal",
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
+
+
+# ensure debate_messages exists before any moderator sub-agent runs (prevents template injection KeyError)
+def _ensure_debate_messages(agent_context=None, **_):
+    if agent_context is None:
+        return None
+    agent_context.state.setdefault("debate_messages", [])
+
+# attach before callbacks to agents that reference state['debate_messages'] in their instructions
+decision_agent.before_agent_callback = _ensure_debate_messages
+executor_agent.before_agent_callback = _ensure_debate_messages
+stop_checker.before_agent_callback = _ensure_debate_messages
 
 
 # ---- referee loop (LoopAgent) ----

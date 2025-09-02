@@ -49,3 +49,12 @@ devil_agent = SequentialAgent(
     name="devils_advocate",
     sub_agents=[devil_tool_agent, devil_schema_agent],
 )
+
+
+# ensure debate_messages exists before running devil agent
+def _ensure_debate_messages(agent_context=None, **_):
+    if agent_context is None:
+        return None
+    agent_context.state.setdefault("debate_messages", [])
+
+devil_agent.before_agent_callback = _ensure_debate_messages

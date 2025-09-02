@@ -53,3 +53,12 @@ evidence_agent = SequentialAgent(
     name="evidence_agent",
     sub_agents=[_evidence_tool_agent, _evidence_schema_agent],
 )
+
+
+# ensure debate_messages exists before running evidence agent
+def _ensure_debate_messages(agent_context=None, **_):
+    if agent_context is None:
+        return None
+    agent_context.state.setdefault("debate_messages", [])
+
+evidence_agent.before_agent_callback = _ensure_debate_messages

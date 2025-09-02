@@ -52,3 +52,12 @@ jury_agent = LlmAgent(
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
+
+
+# ensure debate_messages exists before running this agent (prevents template injection KeyError)
+def _ensure_debate_messages(agent_context=None, **_):
+    if agent_context is None:
+        return None
+    agent_context.state.setdefault("debate_messages", [])
+
+jury_agent.before_agent_callback = _ensure_debate_messages
