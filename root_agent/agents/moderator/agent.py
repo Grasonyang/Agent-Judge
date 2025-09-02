@@ -77,8 +77,10 @@ def _exit_if_end(callback_context, **_):
     if next_speaker is None and isinstance(decision, dict):
         next_speaker = decision.get("next_speaker")
     if next_speaker == "end":
-        # 若決策為結束，統一由工具標記停用訊號
-        return mark_stop(state)
+        # 若決策為結束，統一由工具標記停用訊號並讓 LoopAgent 立即退出
+        result = mark_stop(state)
+        callback_context.actions.escalate = True  # 標記需往上冒泡停止迴圈
+        return result
     return None
 
 class NextTurnDecision(BaseModel):
