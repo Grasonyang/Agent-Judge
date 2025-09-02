@@ -38,50 +38,86 @@
 
 ## 3. 系統總覽（Architecture Overview）
 ```mermaid
----
-config:
-  layout: dagre
----
-flowchart LR
-  subgraph I[階段一：資訊輸入與擴增]
-    A[使用者/爬蟲輸入] --> C{Curator}
-    C --> KB[(Knowledge Base)]
-    H{Historian} --> KB
-    KB --> H
-  end
-  subgraph II[階段二：平行模擬]
-    subgraph Debate[核心辯論場]
-      M{Moderator}
-      P[Advocate]
-      S[Skeptic]
-      Dv[Devil's Advocate]
-      M --> P & S & Dv
-      P <--> S
-      S <--> Dv
-      Dv <--> P
-    end
-    subgraph Social[社會傳播模擬]
-      EC((Echo Chamber))
-      INF((Influencer))
-      DIS[Disrupter]
-      EC -- 放大 --> INF
-      DIS -- 注入假訊息 --> EC
-    end
-  end
-  subgraph III[階段三：裁決與整合]
-    DL[(Debate Log)]
-    SL[(Social Log)]
-    J{Jury}
-    SY{Synthesizer}
-    DL --> J & SY
-    SL --> J & SY
-    J -- 多維評分 --> SY
-  end
-  subgraph IV[階段四：最終產出]
-    RPT[[深度分析報告]]
-  end
-  KB --> M & EC
-  SY --> RPT
+title Multi-Phase Information Processing and Analysis Flow
+direction right
+
+// Phase I: Information Input & Augmentation
+Information Input [shape: oval, color: lightblue, icon: user]
+Historian [shape: oval, color: lightblue, icon: book-open]
+Input and Augmentation [color: blue, icon: database] {
+  Curator [icon: file-text, color: blue]
+  Knowledge Base [icon: database, color: blue]
+}
+
+// Phase II: Parallel Simulation
+Parallel Simulation [color: orange, icon: layers] {
+  Core Debate Arena [color: orange, icon: users] {
+    Moderator [icon: user-check, color: orange]
+    Advocate [icon: thumbs-up, color: green]
+    Skeptic [icon: thumbs-down, color: red]
+    Devils Advocate [icon: alert-triangle, color: yellow]
+  }
+  Social Propagation Simulation [color: purple, icon: share-2] {
+    Echo Chamber [icon: message-circle, color: purple]
+    Influencer [icon: star, color: purple]
+    Disrupter [icon: zap-off, color: purple]
+  }
+}
+
+// Phase III: Judgment & Synthesis
+Judgment and Synthesis [color: teal, icon: scales] {
+  Debate Log [icon: file-text, color: teal]
+  Social Log [icon: file-text, color: teal]
+  Jury [icon: users, color: teal]
+  Synthesizer [icon: cpu, color: teal]
+}
+
+// Phase IV: Final Output
+Final Output [color: green, icon: file-text] {
+  Deep Analysis Report [shape: oval, icon: file-text, color: green]
+}
+
+// Relationships
+Information Input > Curator
+Curator > Knowledge Base
+Knowledge Base > Historian
+
+Knowledge Base > Moderator
+Knowledge Base > Echo Chamber
+
+Moderator > Advocate
+Moderator > Skeptic
+Moderator > Devils Advocate
+
+Advocate > Skeptic
+Skeptic > Devils Advocate
+Advocate > Devils Advocate
+
+Echo Chamber > Influencer: Amplify
+Disrupter > Echo Chamber: Inject Misinformation
+
+Moderator > Debate Log
+Advocate > Debate Log
+Skeptic > Debate Log
+Devils Advocate > Debate Log
+
+Echo Chamber > Social Log
+Influencer > Social Log
+Disrupter > Social Log
+
+Debate Log > Jury
+Debate Log > Synthesizer
+Social Log > Jury
+Social Log > Synthesizer
+
+Jury > Synthesizer: Multidimensional Evaluation
+
+Synthesizer > Deep Analysis Report
+Knowledge Base < Historian
+Advocate < Skeptic
+Skeptic < Devils Advocate
+Advocate < Devils Advocate
+
 ```
 
 ---
