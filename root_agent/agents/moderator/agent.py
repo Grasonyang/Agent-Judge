@@ -46,19 +46,22 @@ LOG_MAP = {
 }
 
 
-def _log_tool_output(tool, args, tool_context, result, **_):
+def _log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, **_):
     """工具執行後記錄輸出
 
-    The ADK runner may pass the tool args using the keyword name `args`.
-    Accept extra kwargs for forward compatibility.
+    Accept both the ADK keyword `tool_response` and older positional `result` for
+    compatibility. Accept extra kwargs for forward compatibility.
     """
+    # Prefer the ADK-provided keyword name 'tool_response' but fall back to
+    # 'result' if present (older callers).
+    response = tool_response if tool_response is not None else result
     info = LOG_MAP.get(tool.name)
     if info:
         speaker, key = info
-        output = tool_context.state.get(key)
+        output = tool_context.state.get(key) if tool_context is not None else None
         if output:
             _log_turn(tool_context.state, speaker, output)
-    return result
+    return response
 
 
 # 把子代理包成可被呼叫的工具（a2a / a3a）
