@@ -31,6 +31,7 @@
 - **The Disrupter｜謠言製造者**：依社群情緒注入最易擴散的干擾訊息（文字/影像），用於壓力測試。
 
 ### 2.4 裁決與整合層（Synthesis & Judgment Layer）
+- **The Evidence Checker｜證據查核者**：串接 Google Search Tool 逐句查證主張並輸出證據鍊。
 - **The Jury｜陪審團**：依「證據品質、邏輯嚴謹、論證韌性、社會影響」四維打分。
 - **The Synthesizer｜知識整合者**：彙整辯論與傳播數據，產出報告與行動建議。
 
@@ -70,23 +71,25 @@ flowchart LR
       DIS -->|噪音寫入| SN
     end
   end
+  SN --> M
   subgraph III[階段三：裁決與整合]
     DL[(Debate Log)]
     SL[(Social Log)]
+    EA{Evidence Agent}
+    ECHK{Evidence Check}
     J{Jury}
     SY{Synthesizer}
-    DL --> J & SY
+    DL --> J & EA
+    EA --> ECHK --> SY
     SL --> J & SY
     J -- 多維評分 --> SY
   end
   INF --> SL
   subgraph IV[階段四：最終產出]
-    EV[(Evidence)]
-    ECHK{Evidence Check}
     RPT[[深度分析報告]]
   end
+  SY --> RPT
   KB --> M & EC
-  SY --> EV --> ECHK --> RPT
 ```
 
 ---
@@ -233,8 +236,10 @@ for round in range(MAX_ROUNDS):
 social_noise = Disrupter.inject(EchoChamber)
 state["social_noise"] = social_noise
 social_log = SocialLog.simulate(EchoChamber, Influencer, social_noise)
-score = Jury.score(DebateLog, social_log)
-report = Synthesizer.write(DebateLog, social_log, score)
+evidence = EvidenceAgent.verify(DebateLog)
+checked = EvidenceCheck.run(evidence)
+score = Jury.score(DebateLog, social_log, checked)
+report = Synthesizer.write(DebateLog, social_log, checked, score)
 ```
 
 ---

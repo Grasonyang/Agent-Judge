@@ -12,6 +12,7 @@ from .skeptic.agent import skeptic_agent
 from .synthesizer.agent import synthesizer_agent
 from .social.agent import social_summary_agent
 from .social_noise.agent import social_noise_agent
+from .evidence.agent import evidence_agent
 
 __all__ = [
     "advocate_agent",
@@ -25,4 +26,5 @@ __all__ = [
     "synthesizer_agent",
     "social_summary_agent",
     "social_noise_agent",
+    "evidence_agent",
 ]
