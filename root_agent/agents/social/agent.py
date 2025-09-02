@@ -36,14 +36,15 @@ _influencer_agent = LlmAgent(
     output_key="influencer",
 )
 
-# Disrupter：注入干擾訊息以測試傳播韌性
+# Disrupter：注入干擾訊息以測試傳播韌性，並將噪音寫入 state["social_noise"]
 _disrupter_agent = LlmAgent(
     name="disrupter",
     model="gemini-2.5-flash",
     instruction=(
         "你是 Disrupter，注入干擾訊息來測試傳播的韌性。"
     ),
-    output_key="disrupter",
+    # 將原始噪音內容寫入 state["social_noise"]
+    output_key="social_noise",
 )
 
 # 平行模擬三種角色
@@ -60,7 +61,7 @@ _social_aggregator = LlmAgent(
         "你是社群紀錄者，請依序讀取以下輸出並統整成 JSON。\n"
         "- Echo Chamber: {echo_chamber}\n"
         "- Influencer: {influencer}\n"
-        "- Disrupter: {disrupter}\n"
+        "- Disrupter: {social_noise}\n"
         "請根據上述內容計算以下指標：\n"
         "polarization_index、virality_score、manipulation_risk，數值介於 0 到 1。\n"
         "僅輸出符合 SocialLog schema 的 JSON。"
