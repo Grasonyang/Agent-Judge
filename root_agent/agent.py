@@ -26,6 +26,8 @@ def _before_init_session(agent_context=None, **_):
     if agent_context is None:
         # no context provided; nothing to mutate
         return None
+    # 確保 state 具有 debate_messages，避免模板注入階段出現 KeyError
+    agent_context.state.setdefault("debate_messages", [])
     initialize_debate_log("debate_log.json", agent_context.state, reset=True)
 
 
