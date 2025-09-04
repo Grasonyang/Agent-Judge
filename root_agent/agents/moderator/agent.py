@@ -17,6 +17,54 @@ from root_agent.agents.social_noise.agent import social_noise_agent
 
 # 統一由 stop_checker 呼叫退出工具
 from .tools import exit_loop
+# import fallacy_agent
+from .fallacy import fallacy_agent
+
+def _ensure_debate_messages(callback_context=None, **_):
+    """
+    在代理執行前，確保 state['debate_messages'] 存在，避免模板或程式讀取時 KeyError。
+    """
+    if callback_context is None:
+        return None
+    state = getattr(callback_context, "state", None)
+    if isinstance(state, dict):
+        state.setdefault("debate_messages", [])
+    return None
+
+def _patch_last_log_fallacies(state: Dict[str, Any], falls: List[dict]) -> None:
+    """把 fallacies 補寫到 debate_log.json 最末筆"""
+    log_path = state.get("debate_log_path")
+    if not log_path:
+        return
+    try:
+        with open(log_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list) and data and isinstance(data[-1], dict):
+            data[-1]["fallacies"] = falls
+            with open(log_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        # 靜默失敗，不阻斷流程
+        pass
+
+def _after_fallacy(callback_context, **_):
+    """
+    包裝 fallacy_agent 的 after callback：
+    1) 先把偵測結果寫回 state['debate_messages'][-1]（沿用 fallacy.py 的行為）
+    2) 再把結果補寫進 debate_log.json 最後一筆
+    """
+    # 1) 盡力沿用 fallacy.py 內建的附掛行為
+    try:
+        from root_agent.agents.moderator.fallacy import _attach_to_last_turn as _orig_attach
+        _orig_attach(callback_context)
+    except Exception:
+        pass
+
+    # 2) patch 到 log
+    detected = (callback_context.state or {}).get("detected_fallacies") or {}
+    falls = detected.get("fallacies", [])
+    _patch_last_log_fallacies(callback_context.state, falls)
+    return None
 
 # 辯論紀錄檔路徑
 LOG_PATH = "debate_log.json"
@@ -51,12 +99,20 @@ def _log_turn(state: Dict[str, Any], speaker: str, output) -> None:
         except Exception:
             content = str(output)
 
+    last_fallacies = None
+    msgs = state.get("debate_messages") or []
+    if msgs:
+        last = msgs[-1]
+        last_fallacies = (last.get("fallacies") if isinstance(last, dict)
+                        else getattr(last, "fallacies", None))
+
     turn = Turn(
         speaker=speaker,
         content=content,
         claim=claim,
         confidence=_get(output, "confidence"),
         evidence=_get(output, "evidence", []),
+        fallacies=last_fallacies or [],
     )
     append_turn(log_path, turn)
 
@@ -70,20 +126,39 @@ LOG_MAP = {
 
 
 def _log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, **_):
-    """工具執行後記錄輸出
-
-    Accept both the ADK keyword `tool_response` and older positional `result` for
-    compatibility. Accept extra kwargs for forward compatibility.
-    """
-    # Prefer the ADK-provided keyword name 'tool_response' but fall back to
-    # 'result' if present (older callers).
     response = tool_response if tool_response is not None else result
     info = LOG_MAP.get(tool.name)
     if info:
         speaker, key = info
-        output = tool_context.state.get(key) if tool_context is not None else None
+        st = tool_context.state if tool_context is not None else {}
+        output = st.get(key)
+
+        # 1) 原本就有的：寫入檔案
         if output:
-            _log_turn(tool_context.state, speaker, output)
+            _log_turn(st, speaker, output)
+
+        # 2) 新增：把這一回合推進 state['debate_messages']
+        st.setdefault("debate_messages", [])
+        # content / claim 兼容 pydantic 或 dict
+        def _get(obj, k, default=None):
+            if obj is None:
+                return default
+            if isinstance(obj, dict):
+                return obj.get(k, default)
+            return getattr(obj, k, default)
+        claim = _get(output, "thesis") or _get(output, "counter_thesis") or _get(output, "stance")
+        if hasattr(output, "model_dump"):
+            payload = output.model_dump()
+        elif isinstance(output, dict):
+            payload = output
+        else:
+            payload = {"text": str(output)}
+
+        st["debate_messages"].append({
+            "speaker": speaker,
+            "content": payload,
+            "claim": claim,
+        })
     return response
 
 
@@ -140,6 +215,11 @@ executor_agent = LlmAgent(
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
 )
 
+# ============== 謬誤檢測代理接線（放在角色發言後） ==============
+fallacy_agent = fallacy_agent
+fallacy_agent.before_agent_callback = _ensure_debate_messages
+fallacy_agent.after_agent_callback = _after_fallacy
+
 
 # --- Combined orchestrator: decision then executor ---
 orchestrator_agent = SequentialAgent(
@@ -181,6 +261,6 @@ stop_checker.before_agent_callback = _ensure_debate_messages
 # ---- referee loop (LoopAgent) ----
 referee_loop = LoopAgent(
     name="debate_referee_loop",
-    sub_agents=[social_noise_agent, orchestrator_agent, stop_checker],
-    max_iterations=12,
+    sub_agents=[social_noise_agent, orchestrator_agent, fallacy_agent, stop_checker],
+    max_iterations=1,
 )

@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Optional
 from pathlib import Path
 import json
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 
 from .evidence import Evidence
 
@@ -13,7 +13,8 @@ class Turn(BaseModel):
     content: str  # 該回合的文字內容
     claim: Optional[str] = None  # 本回合提出或反駁的核心主張
     confidence: Optional[float] = None  # 發言者對主張的信心值
-    evidence: List[Evidence] = []  # 使用到的證據列表
+    evidence: List[Evidence] = Field(default_factory=list)# 使用到的證據列表
+    fallacies: List[dict]     = Field(default_factory=list)  
 
 
 def load_debate_log(path: str) -> List[Turn]:
