@@ -65,10 +65,25 @@ synthesizer_agent = LlmAgent(
 )
 
 
-# ensure debate_messages exists before running synthesizer
-def _ensure_debate_messages(agent_context=None, **_):
-    if agent_context is None:
+# ---------- 同 Jury：前置處理，建立 fallacy_list ----------
+def _ensure_and_flatten_fallacies(callback_context=None, **_):
+    # ensure debate_messages exists before running synthesizer
+    if callback_context is None:
         return None
-    agent_context.state.setdefault("debate_messages", [])
+    state = callback_context.state
+    state.setdefault("debate_messages", [])
+    flat = []
+    for msg in state["debate_messages"]:
+        falls = msg.get("fallacies") if isinstance(msg, dict) else getattr(msg, "fallacies", None)
+        if not falls:
+            continue
+        for f in falls:
+            if hasattr(f, "model_dump"):
+                flat.append(f.model_dump())
+            else:
+                flat.append(dict(f))
+    state["fallacy_list"] = flat
+    return None
 
-synthesizer_agent.before_agent_callback = _ensure_debate_messages
+# 掛上前置處理
+synthesizer_agent.before_agent_callback = _ensure_and_flatten_fallacies

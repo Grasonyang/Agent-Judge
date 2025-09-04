@@ -54,10 +54,28 @@ jury_agent = LlmAgent(
 )
 
 
-# ensure debate_messages exists before running this agent (prevents template injection KeyError)
-def _ensure_debate_messages(agent_context=None, **_):
-    if agent_context is None:
-        return None
-    agent_context.state.setdefault("debate_messages", [])
+# 掛上前置處理（確保有 debate_messages，並聚合 fallacies）
 
-jury_agent.before_agent_callback = _ensure_debate_messages
+# ---------- 聚合 fallacies 的前置處理 ----------
+def _ensure_and_flatten_fallacies(callback_context=None, **_):
+    # ensure debate_messages exists before running this agent (prevents template injection KeyError)
+    if callback_context is None:
+        return None
+    state = callback_context.state
+    state.setdefault("debate_messages", [])
+    # 收集所有回合中已標記的謬誤
+    flat = []
+    for msg in state["debate_messages"]:
+        falls = msg.get("fallacies") if isinstance(msg, dict) else getattr(msg, "fallacies", None)
+        if not falls:
+            continue
+        # falls 可能是 pydantic 物件或 dict，統一轉成 dict
+        for f in falls:
+            if hasattr(f, "model_dump"):
+                flat.append(f.model_dump())
+            else:
+                flat.append(dict(f))
+    state["fallacy_list"] = flat
+    return None
+
+jury_agent.before_agent_callback = _ensure_and_flatten_fallacies
