@@ -38,7 +38,7 @@
 ---
 
 ## 3. 系統總覽（Architecture Overview）
-![alt text](./.images/arhitectrue.png)
+![alt text](./.images/architecture.png)
 
 ---
 
