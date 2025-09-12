@@ -6,3 +6,4 @@ python-dotenv
 pytest
 rouge-score
 tabulate
+deprecated
