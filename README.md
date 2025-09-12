@@ -13,7 +13,7 @@ pip install -r requirements.txt
 
 ## 執行
 ```bash
-python -m root_agent.agent
+adk run root_agent
 ```
 
 ## 系統架構
