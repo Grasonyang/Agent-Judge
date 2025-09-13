@@ -6,7 +6,9 @@ from google.adk.tools.google_search_tool import GoogleSearchTool
 from google.genai import types
 
 from judge.tools.evidence import Evidence
-from judge.tools._state_record import record_agent_event
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 
 # ==== 查核結果資料模型 ====
@@ -60,9 +62,13 @@ def _record_evidence(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("evidence_report") or state.get("evidence")
-    record_agent_event(state, "evidence", {"type": "evidence", "payload": output}, sr)
+    append_event(
+        Event(
+            author="evidence",
+            actions=EventActions(state_delta={"evidence": output}),
+        )
+    )
 
 evidence_agent.after_agent_callback = _record_evidence
 

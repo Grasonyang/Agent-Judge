@@ -1,7 +1,9 @@
 from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
-from judge.tools import StateRecorder
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 
 # ==== 社群噪音紀錄 Schema ====
@@ -75,20 +77,12 @@ def _record_social_noise(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("social_noise")
-    try:
-        from judge.tools import StateRecorder as _SR
-    except Exception:
-        _SR = None
-    if sr and output and _SR:
-        try:
-            rec = _SR(sr)
-            rec.record({"type": "social_noise", "payload": output})
-        except Exception:
-            pass
-    agents = state.setdefault("agents", {})
-    agent_log = agents.setdefault("social_noise", {}).setdefault("log", [])
-    agent_log.append({"type": "social_noise", "payload": output})
+    append_event(
+        Event(
+            author="social_noise",
+            actions=EventActions(state_delta={"social_noise": output}),
+        )
+    )
 
 social_noise_agent.after_agent_callback = _record_social_noise

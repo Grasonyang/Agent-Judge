@@ -2,6 +2,9 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.genai import types
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 # ===== 報告 Schema（ONLY JSON）=====
 class StakeSummary(BaseModel):
@@ -69,10 +72,13 @@ def _record_synthesis(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("final_report_json")
-    from judge.tools._state_record import record_agent_event
-    record_agent_event(state, "synthesizer", {"type": "final_report", "payload": output}, sr)
+    append_event(
+        Event(
+            author="synthesizer",
+            actions=EventActions(state_delta={"final_report_json": output}),
+        )
+    )
 
 synthesizer_agent.after_agent_callback = _record_synthesis
 
