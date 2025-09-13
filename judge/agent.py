@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 from functools import partial
 
 from google.adk.agents import LlmAgent, SequentialAgent
@@ -24,18 +23,17 @@ from judge.tools import _before_init_session, append_event, make_record_callback
 
 
 def create_session(state: dict | None = None) -> Session:
-    """建立新的 Session"""
+    """建立新的 Session（同步呼叫版）"""
 
-    return asyncio.run(
-        session_service.create_session(
-            app_name="agent_judge",
-            user_id="user",
-            state=state
-            or {
-                "debate_messages": [],
-                "agents": [],
-            },
-        )
+    # 使用 google.adk 提供的同步 API，避免在此處建立事件迴圈
+    return session_service.create_session_sync(
+        app_name="agent_judge",
+        user_id="user",
+        state=state
+        or {
+            "debate_messages": [],
+            "agents": [],
+        },
     )
 
 
