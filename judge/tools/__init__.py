@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List
+from typing import List
 
 from google.adk.events.event import Event
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
@@ -13,8 +13,9 @@ from ._debate_log import (
     Turn,
     load_debate_log,
     save_debate_log,
-    append_turn,
     initialize_debate_log,
+    update_state_from_session,
+    export_debate_log,
 )
 from .evidence import Evidence, curator_result_to_evidence
 from ._record_utils import (
@@ -41,25 +42,11 @@ SESSION: Session = session_service.create_session_sync(
 
 
 def append_event(event: Event) -> Event:
-    """同步加入事件到全域 Session。"""
+    """同步加入事件到全域 Session 並更新指標。"""
 
-    return asyncio.run(session_service.append_event(SESSION, event))
-
-
-def session_events_to_debate_log(session: Session) -> List[Dict[str, object]]:
-    """將 Session 事件轉換為辯論紀錄 JSON 陣列。"""
-
-    log: List[Dict[str, object]] = []
-    for ev in session.events:
-        if ev.actions and ev.actions.state_delta:
-            log.append(
-                {
-                    "speaker": ev.author,
-                    "state_delta": ev.actions.state_delta,
-                    "timestamp": ev.timestamp,
-                }
-            )
-    return log
+    result = asyncio.run(session_service.append_event(SESSION, event))
+    update_state_from_session(SESSION.state, SESSION)
+    return result
 
 
 def _before_init_session(agent_context=None, **_):
@@ -77,7 +64,6 @@ __all__ = [
     "Turn",
     "load_debate_log",
     "save_debate_log",
-    "append_turn",
     "initialize_debate_log",
     "ensure_parent_dir",
     "read_json_file",
@@ -89,7 +75,7 @@ __all__ = [
     "curator_result_to_evidence",
     "SESSION",
     "append_event",
-    "session_events_to_debate_log",
+    "export_debate_log",
     "_before_init_session",
 ]
 
