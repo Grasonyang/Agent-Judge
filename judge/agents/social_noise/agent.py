@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 
-from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
+from google.adk.agents import LlmAgent, SequentialAgent
+
+from judge.agents.social.base import create_social_agent
+
+INFLUENCER_COUNT = 2
 
 
 # ==== 社群噪音紀錄 Schema ====
@@ -11,38 +15,14 @@ class NoiseLog(BaseModel):
     disrupter: str = Field(description="干擾者投放的訊息與系統反應")
 
 
-# ==== 個別角色定義 ====
-# Echo Chamber：模擬不同社群群組的反應
-_echo_agent = LlmAgent(
-    name="echo_chamber",
-    model="gemini-2.5-flash",
-    instruction="你是 Echo Chamber，模擬多個社群群組對當前議題的即時反應。",
-    output_key="echo_chamber",
+# ==== 建立平行角色流程 ====
+_social_noise_parallel = create_social_agent(
+    influencer_count=INFLUENCER_COUNT, include_noise=True
 )
 
-# Influencer：可有多位意見領袖
-_influencer_agents = [
-    LlmAgent(
-        name=f"influencer_{i}",
-        model="gemini-2.5-flash",
-        instruction="你是 Influencer，根據 Echo Chamber 的反應放大或扭轉訊息。",
-        output_key=f"influencer_{i}",
-    )
-    for i in range(1, 3)
-]
-
-# Disrupter：注入干擾訊息
-_disrupter_agent = LlmAgent(
-    name="disrupter",
-    model="gemini-2.5-flash",
-    instruction="你是 Disrupter，注入干擾訊息來測試傳播的韌性。",
-    output_key="disrupter",
-)
-
-# 平行執行三類角色
-_social_noise_parallel = ParallelAgent(
-    name="social_noise_parallel",
-    sub_agents=[_echo_agent, *_influencer_agents, _disrupter_agent],
+# 動態產生 Influencer 輸出段落
+_influencer_lines = "\n".join(
+    f"- Influencer {i}: {{influencer_{i}}}" for i in range(1, INFLUENCER_COUNT + 1)
 )
 
 # 聚合社群噪音輸出為 NoiseLog JSON
@@ -52,8 +32,7 @@ _noise_aggregator = LlmAgent(
     instruction=(
         "你是社群噪音紀錄者，請依序讀取以下輸出並統整成 JSON。\n"
         "- Echo Chamber: {echo_chamber}\n"
-        "- Influencer 1: {influencer_1}\n"
-        "- Influencer 2: {influencer_2}\n"
+        f"{_influencer_lines}\n"
         "- Disrupter: {disrupter}\n"
         "僅輸出符合 NoiseLog schema 的 JSON。"
     ),
