@@ -30,18 +30,30 @@ def save_debate_log(path: str, turns: List[Turn]) -> None:
     write_json_file(path, [t.model_dump() for t in turns])
 
 
+def recalculate_metrics(turns: List[Turn]) -> dict:
+    """根據所有回合重新計算辯論指標
+
+    - dispute_points：去除重複主張後的數量
+    - credibility：所有回合信心值的平均，若無則為 0
+    - evidence：彙整所有回合使用到的證據
+    """
+    claims = {t.claim for t in turns if t.claim}
+    confidences = [t.confidence for t in turns if t.confidence is not None]
+    evidences = [ev for t in turns for ev in t.evidence]
+    return {
+        "dispute_points": len(claims),
+        "credibility": sum(confidences) / len(confidences) if confidences else 0.0,
+        "evidence": evidences,
+    }
+
+
 def append_turn(state: dict, turn: Turn) -> None:
     """附加單一回合並即時更新指標。"""
     turns: List[Turn] = state.setdefault("debate_log", [])
     turns.append(turn)
 
-    claims = {t.claim for t in turns if t.claim}
-    confidences = [t.confidence for t in turns if t.confidence is not None]
-    evidences = [ev for t in turns for ev in t.evidence]
-
-    state["dispute_points"] = len(claims)
-    state["credibility"] = sum(confidences) / len(confidences) if confidences else 0.0
-    state["evidence"] = evidences
+    # 重新計算爭議點（主張數量）、可信度平均與證據彙整
+    state.update(recalculate_metrics(turns))
 
 
 def initialize_debate_log(path: str, state: dict, reset: bool = True) -> None:
@@ -103,13 +115,8 @@ def update_state_from_session(state: dict, session: Session) -> None:
     turns = _turns_from_session(session)
     state["debate_log"] = turns
 
-    claims = {t.claim for t in turns if t.claim}
-    confidences = [t.confidence for t in turns if t.confidence is not None]
-    evidences = [ev for t in turns for ev in t.evidence]
-
-    state["dispute_points"] = len(claims)
-    state["credibility"] = sum(confidences) / len(confidences) if confidences else 0.0
-    state["evidence"] = evidences
+    # 依回合重新計算爭議點（主張數量）、可信度平均與證據彙整
+    state.update(recalculate_metrics(turns))
 
 
 def export_debate_log(session: Session) -> str:
