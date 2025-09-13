@@ -16,6 +16,7 @@ from ._debate_log import (
     save_debate_log,
     initialize_debate_log,
     update_state_from_session,
+    append_event_update,
     export_debate_log,
     export_session,
 )
@@ -42,7 +43,7 @@ async def append_event(
 
     # 透過 await 呼叫 Session 服務，避免在回呼中建立新事件迴圈
     result = await service.append_event(session, event)
-    update_state_from_session(session.state, session)
+    append_event_update(session.state, event)
     return result
 
 
@@ -130,6 +131,8 @@ __all__ = [
     "Evidence",
     "curator_result_to_evidence",
     "append_event",
+    "update_state_from_session",
+    "append_event_update",
     "make_record_callback",
     "export_debate_log",
     "export_latest_debate_log",
