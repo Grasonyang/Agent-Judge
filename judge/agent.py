@@ -1,27 +1,103 @@
-from google.adk.agents import SequentialAgent, LlmAgent
-from judge.agents import (
-    curator_agent,
-    historian_agent,
-    social_summary_agent,
-    evidence_agent,
-    referee_loop,
-    jury_agent,
-    synthesizer_agent,
-)
-from judge.tools import _before_init_session, create_session
+from __future__ import annotations
 
-# 啟動時建立 Session，初始化 state 與事件
-create_session()
+import asyncio
+from functools import partial
+
+from google.adk.agents import LlmAgent, SequentialAgent
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
+from google.adk.sessions.session import Session
+
+from judge.agents.advocate.agent import (
+    advocate_agent,
+    register_session as register_advocate,
+)
+from judge.agents.curator.agent import (
+    curator_agent,
+    register_session as register_curator,
+)
+from judge.agents.devil.agent import (
+    devil_agent,
+    register_session as register_devil,
+)
+from judge.agents.evidence.agent import (
+    evidence_agent,
+    register_session as register_evidence,
+)
+from judge.agents.historian.agent import (
+    historian_agent,
+    register_session as register_historian,
+)
+from judge.agents.jury.agent import (
+    jury_agent,
+    register_session as register_jury,
+)
+from judge.agents.moderator.agent import (
+    referee_loop,
+    register_session as register_moderator,
+)
+from judge.agents.skeptic.agent import (
+    skeptic_agent,
+    register_session as register_skeptic,
+)
+from judge.agents.social.agent import (
+    social_summary_agent,
+    register_session as register_social,
+)
+from judge.agents.social_noise.agent import (
+    social_noise_agent,
+    register_session as register_social_noise,
+)
+from judge.agents.synthesizer.agent import (
+    synthesizer_agent,
+    register_session as register_synthesizer,
+)
+from judge.tools import _before_init_session, append_event
+
+
+# 建立 SessionService（可替換為其他實作）
+session_service = InMemorySessionService()
+
+
+def create_session(state: dict | None = None) -> Session:
+    """建立新的 Session"""
+
+    return asyncio.run(
+        session_service.create_session(
+            app_name="agent_judge",
+            user_id="user",
+            state=state
+            or {
+                "debate_messages": [],
+                "agents": [],
+            },
+        )
+    )
+
+
+def bind_session(session: Session) -> None:
+    """將 append_event 函式注入各代理，避免全域依賴"""
+
+    append_event_fn = partial(append_event, session, service=session_service)
+    register_curator(append_event_fn)
+    register_historian(append_event_fn)
+    register_social(append_event_fn)
+    register_evidence(append_event_fn)
+    register_jury(append_event_fn)
+    register_synthesizer(append_event_fn)
+    register_skeptic(append_event_fn)
+    register_advocate(append_event_fn)
+    register_devil(append_event_fn)
+    register_social_noise(append_event_fn)
+    register_moderator(append_event_fn)
+
 
 # =============== Root Pipeline ===============
 # 固定順序：Curator → Historian → 主持人回合制（正/反/極端）→ Social → Evidence → Jury → Synthesizer(JSON)
-
 
 _init_session = LlmAgent(
     name="init_session",
     model="gemini-2.5-flash",
     instruction=("初始化 session（此代理僅用於在執行前設定 state，無需輸出）。"),
-    # 不實際呼叫 tools 或產生 schema，僅利用 before_agent_callback
     before_agent_callback=_before_init_session,
     output_key="_init_session",
 )
@@ -29,13 +105,19 @@ _init_session = LlmAgent(
 root_agent = SequentialAgent(
     name="root_pipeline",
     sub_agents=[
-        _init_session,    # 初始化辯論紀錄檔
+        _init_session,
         curator_agent,
-        historian_agent,  # 歷史學者：整理時間軸與宣傳模式
-        referee_loop,     # 這顆是 LoopAgent；會讀寫 state["debate_messages"]
+        historian_agent,
+        referee_loop,
         social_summary_agent,
         evidence_agent,
         jury_agent,
-        synthesizer_agent # 產生 state["final_report_json"]
+        synthesizer_agent,
     ],
 )
+
+
+if __name__ == "__main__":
+    session = create_session()
+    bind_session(session)
+    # 如需執行 root_agent，請自行呼叫對應方法

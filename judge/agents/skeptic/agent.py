@@ -6,9 +6,9 @@ from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence  # 使用絕對匯入以避免路徑問題
+from functools import partial
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
-from judge.tools import append_event
 
 
 # ---- 方便比對 Advocate / Curator 內容 ----
@@ -69,8 +69,8 @@ skeptic_schema_agent = LlmAgent(
 )
 
 
-def _record_skepticism(agent_context=None, **_):
-    if agent_context is None:
+def _record_skepticism(agent_context=None, append_event=None, **_):
+    if agent_context is None or append_event is None:
         return None
     state = agent_context.state
     output = state.get("skepticism")
@@ -81,7 +81,11 @@ def _record_skepticism(agent_context=None, **_):
         )
     )
 
-skeptic_schema_agent.after_agent_callback = _record_skepticism
+
+def register_session(append_event):
+    skeptic_schema_agent.after_agent_callback = partial(
+        _record_skepticism, append_event=append_event
+    )
 
 skeptic_agent = SequentialAgent(
     name="skeptic",

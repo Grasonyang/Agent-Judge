@@ -3,9 +3,9 @@ from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
+from functools import partial
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
-from judge.tools import append_event
 
 # ---- 評分維度（你架構文件中第三階段的建議分數項）----
 class ScoreDetail(BaseModel):
@@ -30,8 +30,8 @@ class JuryOutput(BaseModel):
     next_questions: List[str] = Field(default_factory=list, description="尚待澄清/查證的重點問題")
 
 
-def _record_jury(agent_context=None, **_):
-    if agent_context is None:
+def _record_jury(agent_context=None, append_event=None, **_):
+    if agent_context is None or append_event is None:
         return None
     state = agent_context.state
     output = state.get("jury_result")
@@ -93,6 +93,10 @@ jury_agent = LlmAgent(
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
     before_agent_callback=_ensure_and_flatten_fallacies,
-    after_agent_callback=_record_jury,
+    after_agent_callback=None,
 )
+
+
+def register_session(append_event):
+    jury_agent.after_agent_callback = partial(_record_jury, append_event=append_event)
 
