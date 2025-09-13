@@ -7,3 +7,5 @@ pytest
 rouge-score
 tabulate
 deprecated
+scikit-learn
+datasets
