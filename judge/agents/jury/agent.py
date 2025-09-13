@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
+from judge.tools import flatten_fallacies
 
 # ---- 評分維度（你架構文件中第三階段的建議分數項）----
 class ScoreDetail(BaseModel):
@@ -28,23 +29,12 @@ class Finding(BaseModel):
 
 # ---------- 聚合 fallacies 的前置處理 ----------
 def _ensure_and_flatten_fallacies(callback_context=None, **_):
-    # ensure debate_messages exists before running this agent (prevents template injection KeyError)
+    """在執行前扁平化辯論訊息中的謬誤。"""
     if callback_context is None:
         return None
     state = callback_context.state
-    # 收集所有回合中已標記的謬誤
-    flat = []
-    for msg in state["debate_messages"]:
-        falls = msg.get("fallacies") if isinstance(msg, dict) else getattr(msg, "fallacies", None)
-        if not falls:
-            continue
-        # falls 可能是 pydantic 物件或 dict，統一轉成 dict
-        for f in falls:
-            if hasattr(f, "model_dump"):
-                flat.append(f.model_dump())
-            else:
-                flat.append(dict(f))
-    state["fallacy_list"] = flat
+    # 直接使用共用工具將所有回合的謬誤扁平化
+    state["fallacy_list"] = flatten_fallacies(state["debate_messages"])
     return None
 
 

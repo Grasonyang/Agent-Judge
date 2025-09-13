@@ -28,6 +28,7 @@ from ._record_utils import (
     append_ndjson,
     read_ndjson,
 )
+from .fallacy_utils import flatten_fallacies
 
 
 
@@ -135,5 +136,6 @@ __all__ = [
     "export_session",
     "export_latest_session",
     "_before_init_session",
+    "flatten_fallacies",
 ]
 

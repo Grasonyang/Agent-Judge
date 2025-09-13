@@ -2,6 +2,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.genai import types
+from judge.tools import flatten_fallacies
 
 # ===== 報告 Schema（ONLY JSON）=====
 class StakeSummary(BaseModel):
@@ -40,21 +41,12 @@ class FinalReport(BaseModel):
 
 # ---------- 同 Jury：前置處理，建立 fallacy_list ----------
 def _ensure_and_flatten_fallacies(callback_context=None, **_):
-    # 確保在執行前已有辯論紀錄，並扁平化所有謬誤
+    """在執行前將辯論謬誤扁平化存入 state。"""
     if callback_context is None:
         return None
     state = callback_context.state
-    flat = []
-    for msg in state["debate_messages"]:
-        falls = msg.get("fallacies") if isinstance(msg, dict) else getattr(msg, "fallacies", None)
-        if not falls:
-            continue
-        for f in falls:
-            if hasattr(f, "model_dump"):
-                flat.append(f.model_dump())
-            else:
-                flat.append(dict(f))
-    state["fallacy_list"] = flat
+    # 使用共用工具取得扁平化後的謬誤列表
+    state["fallacy_list"] = flatten_fallacies(state["debate_messages"])
     return None
 
 
