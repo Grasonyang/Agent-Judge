@@ -88,11 +88,9 @@ def log_tool_output(tool, args=None, tool_context=None, tool_response=None, resu
             "content": payload,
             "claim": claim,
         })
-        # also write to state_record and keep in-memory agent log
-        sr_path = st.get("state_record_path")
-        if sr_path and append_event is not None:
+        # 透過 Session 事件紀錄輸出，避免重複紀錄
+        if append_event is not None:
             try:
-                # 將工具輸出記錄為事件並更新 state
                 append_event(
                     Event(
                         author=speaker,
