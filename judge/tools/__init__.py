@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-from typing import List
 
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
@@ -34,10 +32,15 @@ from ._record_utils import (
 
 
 
-def append_event(session: Session, event: Event, service: InMemorySessionService = session_service) -> Event:
-    """加入事件到指定 Session 並同步更新 state"""
+async def append_event(
+    session: Session,
+    event: Event,
+    service: InMemorySessionService = session_service,
+) -> Event:
+    """加入事件到指定 Session 並同步更新 state（非同步）"""
 
-    result = asyncio.run(service.append_event(session, event))
+    # 透過 await 呼叫 Session 服務，避免在回呼中建立新事件迴圈
+    result = await service.append_event(session, event)
     update_state_from_session(session.state, session)
     return result
 
@@ -52,7 +55,7 @@ def make_record_callback(author: str, key: str):
         key:    在 state 與事件中使用的鍵名
     """
 
-    def _callback(agent_context=None, append_event=None, **_):
+    async def _callback(agent_context=None, append_event=None, **_):
         # 若未提供必要參數則不動作
         if agent_context is None or append_event is None:
             return None
@@ -61,7 +64,8 @@ def make_record_callback(author: str, key: str):
         # 優先讀取 *_report，否則回退至原始 key
         output = state.get(f"{key}_report") or state.get(key)
 
-        append_event(
+        # 非同步寫入事件，確保使用同一事件迴圈
+        await append_event(
             Event(author=author, actions=EventActions(state_delta={key: output}))
         )
 
@@ -70,30 +74,30 @@ def make_record_callback(author: str, key: str):
     return _callback
 
 
-def export_latest_debate_log(session: Session, service: InMemorySessionService = session_service) -> str:
-    """取得最新事件並輸出辯論紀錄"""
+async def export_latest_debate_log(
+    session: Session, service: InMemorySessionService = session_service
+) -> str:
+    """取得最新事件並輸出辯論紀錄（非同步）"""
 
-    session = asyncio.run(
-        service.get_session(
-            app_name=session.app_name,
-            user_id=session.user_id,
-            session_id=session.id,
-        )
+    session = await service.get_session(
+        app_name=session.app_name,
+        user_id=session.user_id,
+        session_id=session.id,
     )
     return export_debate_log(session)
 
 
-def export_latest_session(
-    session: Session, path: str = "debate_log.json", service: InMemorySessionService = session_service
+async def export_latest_session(
+    session: Session,
+    path: str = "debate_log.json",
+    service: InMemorySessionService = session_service,
 ) -> dict:
-    """匯出最新 Session 並保存為 JSON 檔"""
+    """匯出最新 Session 並保存為 JSON 檔（非同步）"""
 
-    session = asyncio.run(
-        service.get_session(
-            app_name=session.app_name,
-            user_id=session.user_id,
-            session_id=session.id,
-        )
+    session = await service.get_session(
+        app_name=session.app_name,
+        user_id=session.user_id,
+        session_id=session.id,
     )
     data = export_session(session)
     write_json_file(path, data)

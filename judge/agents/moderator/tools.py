@@ -61,7 +61,7 @@ def ensure_debate_messages(callback_context=None, **_):
     return None
 
 
-def log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, append_event=None, **_):
+async def log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, append_event=None, **_):
     response = tool_response if tool_response is not None else result
     info = LOG_MAP.get(tool.name)
     if info:
@@ -91,7 +91,8 @@ def log_tool_output(tool, args=None, tool_context=None, tool_response=None, resu
         # 透過 Session 事件紀錄輸出，避免重複紀錄
         if append_event is not None:
             try:
-                append_event(
+                # 非同步寫入事件，確保與代理共用事件迴圈
+                await append_event(
                     Event(
                         author=speaker,
                         actions=EventActions(
