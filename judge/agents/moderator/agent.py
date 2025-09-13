@@ -6,6 +6,7 @@ referee LoopAgent. Helper functions and AgentTool wrappers live in
 `judge.agents.moderator.tools` to keep this file focused on orchestration.
 """
 
+from functools import partial
 from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
 from google.genai import types
 
@@ -55,7 +56,7 @@ executor_agent = LlmAgent(
     ),
     before_agent_callback=ensure_debate_messages,
     tools=[advocate_tool, skeptic_tool, devil_tool],
-    after_tool_callback=log_tool_output,
+    after_tool_callback=None,
     # no output_schema here because tools are used
     output_key="orchestrator_exec",
     # planner removed to avoid sending thinking config to model
@@ -92,3 +93,9 @@ referee_loop = LoopAgent(
     sub_agents=[social_noise_agent, orchestrator_agent, stop_checker],
     max_iterations=1,
 )
+
+
+def register_session(append_event):
+    executor_agent.after_tool_callback = partial(
+        log_tool_output, append_event=append_event
+    )

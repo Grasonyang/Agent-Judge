@@ -29,64 +29,43 @@ from ._record_utils import (
 )
 
 
-# 建立全域 InMemorySessionService
+# 建立全域 InMemorySessionService（可依需求替換為其他實作）
 session_service = InMemorySessionService()
-SESSION: Session | None = None
 
 
-def create_session(state: dict | None = None) -> Session:
-    """建立 Session 並設定初始 state"""
+def append_event(session: Session, event: Event, service: InMemorySessionService = session_service) -> Event:
+    """加入事件到指定 Session 並同步更新 state"""
 
-    global SESSION
-    SESSION = asyncio.run(
-        session_service.create_session(
-            app_name="agent_judge",
-            user_id="user",
-            state=state
-            or {
-                "debate_messages": [],  # 儲存辯論訊息
-                "agents": [],  # 紀錄參與代理
-            },
-        )
-    )
-    return SESSION
-
-
-def get_session() -> Session:
-    """取得最新 Session（含 state 與 events）"""
-
-    if SESSION is None:
-        raise RuntimeError("Session 尚未建立")
-    return asyncio.run(
-        session_service.get_session(
-            app_name=SESSION.app_name,
-            user_id=SESSION.user_id,
-            session_id=SESSION.id,
-        )
-    )
-
-
-def append_event(event: Event) -> Event:
-    """同步加入事件到全域 Session 並更新指標。"""
-
-    if SESSION is None:
-        raise RuntimeError("Session 尚未建立")
-    result = asyncio.run(session_service.append_event(SESSION, event))
-    update_state_from_session(SESSION.state, SESSION)
+    result = asyncio.run(service.append_event(session, event))
+    update_state_from_session(session.state, session)
     return result
 
 
-def export_latest_debate_log() -> str:
-    """透過 SessionService 取得最新事件並輸出辯論紀錄"""
+def export_latest_debate_log(session: Session, service: InMemorySessionService = session_service) -> str:
+    """取得最新事件並輸出辯論紀錄"""
 
-    session = get_session()
+    session = asyncio.run(
+        service.get_session(
+            app_name=session.app_name,
+            user_id=session.user_id,
+            session_id=session.id,
+        )
+    )
     return export_debate_log(session)
 
 
-def export_latest_session(path: str = "debate_log.json") -> dict:
+def export_latest_session(
+    session: Session, path: str = "debate_log.json", service: InMemorySessionService = session_service
+) -> dict:
     """匯出最新 Session 並保存為 JSON 檔"""
 
-    session = get_session()
+    session = asyncio.run(
+        service.get_session(
+            app_name=session.app_name,
+            user_id=session.user_id,
+            session_id=session.id,
+        )
+    )
     data = export_session(session)
     write_json_file(path, data)
     return data
@@ -116,9 +95,6 @@ __all__ = [
     "read_ndjson",
     "Evidence",
     "curator_result_to_evidence",
-    "SESSION",
-    "create_session",
-    "get_session",
     "append_event",
     "export_debate_log",
     "export_latest_debate_log",

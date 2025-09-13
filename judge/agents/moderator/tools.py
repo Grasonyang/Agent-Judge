@@ -5,7 +5,6 @@ from typing import Any
 from pydantic import BaseModel
 from google.adk.tools.agent_tool import AgentTool
 
-from judge.tools import append_event
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
 from judge.agents.advocate.agent import advocate_agent
@@ -62,7 +61,7 @@ def ensure_debate_messages(callback_context=None, **_):
     return None
 
 
-def log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, **_):
+def log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, append_event=None, **_):
     response = tool_response if tool_response is not None else result
     info = LOG_MAP.get(tool.name)
     if info:
@@ -91,7 +90,7 @@ def log_tool_output(tool, args=None, tool_context=None, tool_response=None, resu
         })
         # also write to state_record and keep in-memory agent log
         sr_path = st.get("state_record_path")
-        if sr_path:
+        if sr_path and append_event is not None:
             try:
                 # 將工具輸出記錄為事件並更新 state
                 append_event(

@@ -3,9 +3,9 @@ from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.genai import types
+from functools import partial
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
-from judge.tools import append_event
 
 # ====== Schema 定義（輸出時間軸與宣傳模式）======
 class TimelineEvent(BaseModel):
@@ -45,8 +45,8 @@ historian_agent = SequentialAgent(
 )
 
 
-def _record_history(agent_context=None, **_):
-    if agent_context is None:
+def _record_history(agent_context=None, append_event=None, **_):
+    if agent_context is None or append_event is None:
         return None
     state = agent_context.state
     output = state.get("history")
@@ -57,4 +57,8 @@ def _record_history(agent_context=None, **_):
         )
     )
 
-historian_agent.after_agent_callback = _record_history
+
+def register_session(append_event):
+    historian_agent.after_agent_callback = partial(
+        _record_history, append_event=append_event
+    )
