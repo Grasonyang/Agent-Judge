@@ -29,8 +29,14 @@ from ._record_utils import (
 
 # 建立全域 InMemorySessionService 與 Session 物件
 session_service = InMemorySessionService()
+# 建立 Session 時統一指定初始 state
 SESSION: Session = session_service.create_session_sync(
-    app_name="agent_judge", user_id="user"
+    app_name="agent_judge",
+    user_id="user",
+    state={
+        "debate_messages": [],  # 儲存辯論訊息
+        "agents": [],           # 紀錄參與代理
+    },
 )
 
 
@@ -62,7 +68,6 @@ def _before_init_session(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    state.setdefault("debate_messages", [])
     # 僅初始化辯論紀錄檔；state 變更將透過 session events 儲存
     initialize_debate_log("debate_log.json", state, reset=True)
     return None

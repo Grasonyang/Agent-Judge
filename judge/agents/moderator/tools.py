@@ -77,14 +77,7 @@ def should_stop(state) -> bool:
     )
 
 def ensure_debate_messages(callback_context=None, **_):
-    """
-    Ensure state['debate_messages'] exists to avoid KeyError in templates or code.
-    """
-    if callback_context is None:
-        return None
-    state = getattr(callback_context, "state", None)
-    if isinstance(state, dict):
-        state.setdefault("debate_messages", [])
+    """前置處理：目前無需額外動作，保留以維持介面一致。"""
     return None
 
 def log_turn(state: Dict[str, Any], speaker: str, output) -> None:
@@ -144,7 +137,6 @@ def log_tool_output(tool, args=None, tool_context=None, tool_response=None, resu
         if output:
             log_turn(st, speaker, output)
 
-        st.setdefault("debate_messages", [])
         def _get(obj, k, default=None):
             if obj is None:
                 return default
