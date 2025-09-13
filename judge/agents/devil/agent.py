@@ -47,13 +47,6 @@ devil_schema_agent = LlmAgent(
 )
 
 
-# Combined pipeline
-devil_agent = SequentialAgent(
-    name="devils_advocate",
-    sub_agents=[devil_tool_agent, devil_schema_agent],
-)
-
-
 def _record_devil(agent_context=None, **_):
     if agent_context is None:
         return None
@@ -66,13 +59,18 @@ def _record_devil(agent_context=None, **_):
         )
     )
 
-devil_agent.after_agent_callback = _record_devil
+
+# 保留前置處理介面，目前無需額外動作
+def _before_devil(agent_context=None, **_):
+    return None
 
 
-# ensure debate_messages exists before running devil agent
-def _ensure_debate_messages(agent_context=None, **_):
-    if agent_context is None:
-        return None
-    agent_context.state.setdefault("debate_messages", [])
+# Combined pipeline
+devil_agent = SequentialAgent(
+    name="devils_advocate",
+    sub_agents=[devil_tool_agent, devil_schema_agent],
+    before_agent_callback=_before_devil,
+    after_agent_callback=_record_devil,
+)
 
-devil_agent.before_agent_callback = _ensure_debate_messages
+

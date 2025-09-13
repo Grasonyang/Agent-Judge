@@ -51,13 +51,6 @@ _evidence_schema_agent = LlmAgent(
 )
 
 
-# 公開的 Evidence Agent，先查詢再整理
-evidence_agent = SequentialAgent(
-    name="evidence_agent",
-    sub_agents=[_evidence_tool_agent, _evidence_schema_agent],
-)
-
-
 def _record_evidence(agent_context=None, **_):
     if agent_context is None:
         return None
@@ -70,13 +63,16 @@ def _record_evidence(agent_context=None, **_):
         )
     )
 
-evidence_agent.after_agent_callback = _record_evidence
+
+# 保留前置處理介面，目前無需額外動作
+def _before_evidence(agent_context=None, **_):
+    return None
 
 
-# ensure debate_messages exists before running evidence agent
-def _ensure_debate_messages(agent_context=None, **_):
-    if agent_context is None:
-        return None
-    agent_context.state.setdefault("debate_messages", [])
-
-evidence_agent.before_agent_callback = _ensure_debate_messages
+# 公開的 Evidence Agent，先查詢再整理
+evidence_agent = SequentialAgent(
+    name="evidence_agent",
+    sub_agents=[_evidence_tool_agent, _evidence_schema_agent],
+    before_agent_callback=_before_evidence,
+    after_agent_callback=_record_evidence,
+)
