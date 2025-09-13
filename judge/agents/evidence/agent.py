@@ -6,9 +6,8 @@ from google.adk.tools.google_search_tool import GoogleSearchTool
 from google.genai import types
 
 from judge.tools.evidence import Evidence
+from judge.tools import make_record_callback
 from functools import partial
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
 
 
 # ==== 查核結果資料模型 ====
@@ -51,19 +50,6 @@ _evidence_schema_agent = LlmAgent(
 )
 
 
-def _record_evidence(agent_context=None, append_event=None, **_):
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("evidence_report") or state.get("evidence")
-    append_event(
-        Event(
-            author="evidence",
-            actions=EventActions(state_delta={"evidence": output}),
-        )
-    )
-
-
 # 保留前置處理介面，目前無需額外動作
 def _before_evidence(agent_context=None, **_):
     return None
@@ -80,5 +66,5 @@ evidence_agent = SequentialAgent(
 
 def register_session(append_event):
     evidence_agent.after_agent_callback = partial(
-        _record_evidence, append_event=append_event
+        make_record_callback("evidence", "evidence"), append_event=append_event
     )

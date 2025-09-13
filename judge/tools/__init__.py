@@ -6,6 +6,7 @@ import asyncio
 from typing import List
 
 from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.sessions.session import Session
 
@@ -39,6 +40,34 @@ def append_event(session: Session, event: Event, service: InMemorySessionService
     result = asyncio.run(service.append_event(session, event))
     update_state_from_session(session.state, session)
     return result
+
+
+def make_record_callback(author: str, key: str):
+    """建立統一的 after_agent_callback 以記錄代理輸出
+
+    會從 state 中擷取資料，並透過 google.adk 的事件 API 寫入 Session。
+
+    Args:
+        author: 事件來源代理名稱
+        key:    在 state 與事件中使用的鍵名
+    """
+
+    def _callback(agent_context=None, append_event=None, **_):
+        # 若未提供必要參數則不動作
+        if agent_context is None or append_event is None:
+            return None
+
+        state = agent_context.state
+        # 優先讀取 *_report，否則回退至原始 key
+        output = state.get(f"{key}_report") or state.get(key)
+
+        append_event(
+            Event(author=author, actions=EventActions(state_delta={key: output}))
+        )
+
+        return None
+
+    return _callback
 
 
 def export_latest_debate_log(session: Session, service: InMemorySessionService = session_service) -> str:
@@ -96,6 +125,7 @@ __all__ = [
     "Evidence",
     "curator_result_to_evidence",
     "append_event",
+    "make_record_callback",
     "export_debate_log",
     "export_latest_debate_log",
     "export_session",
