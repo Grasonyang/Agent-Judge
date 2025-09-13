@@ -7,9 +7,26 @@
 本專案為多代理辯論系統，目標在於對假新聞進行可觀察、可審計與可復現的分析，透過多角色協作產出結構化報告。
 
 ## 安裝
+建議於 Python 3.12 以上的虛擬環境中安裝依賴：
+
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate  # 啟用虛擬環境
+pip install -r requirements.txt  # 安裝相依套件
 ```
+
+### 主要相依套件版本
+
+| 套件 | 版本 |
+| --- | --- |
+| google-adk | 1.14.0 |
+| google-generativeai | 0.8.5 |
+| pandas | 2.3.2 |
+| pydantic | 2.11.9 |
+| python-dotenv | 1.1.1 |
+| pytest | 8.4.1 |
+| rouge-score | 0.1.2 |
+| tabulate | 0.9.0 |
 
 ## 執行
 ```bash
