@@ -117,3 +117,32 @@ def export_debate_log(session: Session) -> str:
     turns = _turns_from_session(session)
     data = [t.model_dump() for t in turns]
     return json.dumps(data, ensure_ascii=False)
+
+
+def export_session(session: Session) -> dict:
+    """整理 Session state 與事件並回傳 dict"""
+
+    # 依前綴分層 state：app、user、shared
+    state_scoped = {"app": {}, "user": {}, "shared": {}}
+    for key, value in session.state.items():
+        if key.startswith("app:"):
+            state_scoped["app"][key[4:]] = value
+        elif key.startswith("user:"):
+            state_scoped["user"][key[5:]] = value
+        else:
+            state_scoped["shared"][key] = value
+
+    # 將事件完整輸出為 list[dict]
+    events = [ev.model_dump() for ev in session.events]
+
+    return {
+        "session": {
+            "id": session.id,
+            "app_name": session.app_name,
+            "user_id": session.user_id,
+            "last_update_time": session.last_update_time,
+        },
+        "state": state_scoped,
+        "events": events,
+    }
+
