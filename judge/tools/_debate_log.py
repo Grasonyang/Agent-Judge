@@ -3,6 +3,7 @@ from typing import List, Optional
 import json
 from pydantic import BaseModel, Field
 
+from google.adk.events.event import Event
 from google.adk.sessions.session import Session
 
 from .evidence import Evidence
@@ -54,6 +55,42 @@ def append_turn(state: dict, turn: Turn) -> None:
 
     # 重新計算爭議點（主張數量）、可信度平均與證據彙整
     state.update(recalculate_metrics(turns))
+
+
+def append_event_update(state: dict, event: Event) -> None:
+    """根據事件內容即時更新辯論指標"""
+
+    actions = getattr(event, "actions", None)
+    if not actions or not getattr(actions, "state_delta", None):
+        return
+
+    state_delta = actions.state_delta
+    msgs = state_delta.get("debate_messages")
+    if not isinstance(msgs, list):
+        return
+
+    turns: List[Turn] = state.setdefault("debate_log", [])
+    seen = len(turns)
+    payload = next((v for k, v in state_delta.items() if k != "debate_messages"), {})
+
+    for msg in msgs[seen:]:
+        speaker = msg.get("speaker") or event.author
+        content = msg.get("content")
+        if isinstance(content, (dict, list)):
+            content = json.dumps(content, ensure_ascii=False)
+
+        confidence = payload.get("confidence") if isinstance(payload, dict) else None
+        evidence = payload.get("evidence", []) if isinstance(payload, dict) else []
+
+        turn = Turn(
+            speaker=speaker,
+            content=content or "",
+            claim=msg.get("claim"),
+            confidence=confidence,
+            evidence=evidence,
+            fallacies=msg.get("fallacies", []),
+        )
+        append_turn(state, turn)
 
 
 def initialize_debate_log(path: str, state: dict, reset: bool = True) -> None:
