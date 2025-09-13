@@ -1,9 +1,6 @@
 from pydantic import BaseModel, Field
 
-from functools import partial
 from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
 
 
 # ==== 社群擴散紀錄 Schema ====
@@ -81,22 +78,3 @@ social_summary_agent = SequentialAgent(
     name="social_summary",
     sub_agents=[_social_parallel, _social_aggregator],
 )
-
-
-def _record_social(agent_context=None, append_event=None, **_):
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("social_log")
-    append_event(
-        Event(
-            author="social",
-            actions=EventActions(state_delta={"social_log": output}),
-        )
-    )
-
-
-def register_session(append_event):
-    social_summary_agent.after_agent_callback = partial(
-        _record_social, append_event=append_event
-    )

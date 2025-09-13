@@ -5,8 +5,6 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence
-from judge.tools import make_record_callback
-from functools import partial
 
 
 # ---- 讀 Curator 的證據結構（最小鏡像；如你已有型別可改 from ... import） ----
@@ -61,12 +59,6 @@ advocate_schema_agent = LlmAgent(
     # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.4),
 )
-
-
-def register_session(append_event):
-    advocate_schema_agent.after_agent_callback = partial(
-        make_record_callback("advocate", "advocacy"), append_event=append_event
-    )
 
 
 # Public advocate pipeline
