@@ -198,7 +198,9 @@ TOOLS = [
 ]
 
 
-#使用範例
+
+
+# 可根據文字內容搜尋最相近的 Cofacts 文章
 # from judge.tools.cofacts_tool.agent_tool import (
 #     cofacts_refresh_cache,
 #     cofacts_search_text,
