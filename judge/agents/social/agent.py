@@ -1,6 +1,8 @@
 from pydantic import BaseModel, Field
 
-from google.adk.agents import LlmAgent, ParallelAgent, SequentialAgent
+from google.adk.agents import LlmAgent, SequentialAgent
+
+from .base import create_social_agent
 
 
 # ==== 社群擴散紀錄 Schema ====
@@ -14,44 +16,8 @@ class SocialLog(BaseModel):
     manipulation_risk: float = Field(description="0 到 1 之間的操弄風險")
 
 
-# ==== 個別角色定義 ====
-# Echo Chamber：模擬不同社群群組的反應
-_echo_agent = LlmAgent(
-    name="echo_chamber",
-    model="gemini-2.5-flash",
-    instruction=(
-        "你是 Echo Chamber，模擬多個社群群組對當前議題的即時反應，"
-        "請提供摘要。"
-    ),
-    output_key="echo_chamber",
-)
-
-# Influencer：放大或扭轉 Echo Chamber 產生的內容
-_influencer_agent = LlmAgent(
-    name="influencer",
-    model="gemini-2.5-flash",
-    instruction=(
-        "你是 Influencer，根據 Echo Chamber 的反應放大或扭轉訊息。"
-    ),
-    output_key="influencer",
-)
-
-# Disrupter：注入干擾訊息以測試傳播韌性，並將噪音寫入 state["social_noise"]
-_disrupter_agent = LlmAgent(
-    name="disrupter",
-    model="gemini-2.5-flash",
-    instruction=(
-        "你是 Disrupter，注入干擾訊息來測試傳播的韌性。"
-    ),
-    # 將原始噪音內容寫入 state["social_noise"]
-    output_key="social_noise",
-)
-
-# 平行模擬三種角色
-_social_parallel = ParallelAgent(
-    name="social_parallel",
-    sub_agents=[_echo_agent, _influencer_agent, _disrupter_agent],
-)
+# ==== 建立平行角色流程 ====
+_social_parallel = create_social_agent(influencer_count=1, include_noise=False)
 
 # 聚合社群輸出為 SocialLog JSON
 _social_aggregator = LlmAgent(
