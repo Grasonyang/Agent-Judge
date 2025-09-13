@@ -6,7 +6,9 @@ from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence  # 使用絕對匯入以避免路徑問題
-from judge.tools._state_record import record_agent_event
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 
 # ---- 方便比對 Advocate / Curator 內容 ----
@@ -71,9 +73,13 @@ def _record_skepticism(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("skepticism")
-    record_agent_event(state, "skeptic", {"type": "skepticism", "payload": output}, sr)
+    append_event(
+        Event(
+            author="skeptic",
+            actions=EventActions(state_delta={"skepticism": output}),
+        )
+    )
 
 skeptic_schema_agent.after_agent_callback = _record_skepticism
 

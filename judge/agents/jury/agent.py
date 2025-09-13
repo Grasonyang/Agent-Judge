@@ -3,6 +3,9 @@ from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 # ---- 評分維度（你架構文件中第三階段的建議分數項）----
 class ScoreDetail(BaseModel):
@@ -58,10 +61,13 @@ def _record_jury(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("jury_result")
-    from judge.tools._state_record import record_agent_event
-    record_agent_event(state, "jury", {"type": "jury_result", "payload": output}, sr)
+    append_event(
+        Event(
+            author="jury",
+            actions=EventActions(state_delta={"jury_result": output}),
+        )
+    )
 
 jury_agent.after_agent_callback = _record_jury
 

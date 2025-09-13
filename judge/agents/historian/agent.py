@@ -3,7 +3,9 @@ from pydantic import BaseModel, Field
 
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.genai import types
-from judge.tools import StateRecorder
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 # ====== Schema 定義（輸出時間軸與宣傳模式）======
 class TimelineEvent(BaseModel):
@@ -47,20 +49,12 @@ def _record_history(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("history")
-    try:
-        from judge.tools import StateRecorder as _SR
-    except Exception:
-        _SR = None
-    if sr and output and _SR:
-        try:
-            rec = _SR(sr)
-            rec.record({"type": "history", "payload": output})
-        except Exception:
-            pass
-    agents = state.setdefault("agents", {})
-    agent_log = agents.setdefault("historian", {}).setdefault("log", [])
-    agent_log.append({"type": "history", "payload": output})
+    append_event(
+        Event(
+            author="historian",
+            actions=EventActions(state_delta={"history": output}),
+        )
+    )
 
 historian_agent.after_agent_callback = _record_history

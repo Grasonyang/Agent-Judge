@@ -11,8 +11,10 @@ from judge.tools import (
     append_turn,
     initialize_debate_log,
     load_debate_log,
-    record_agent_event
+    append_event,
 )
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
 from judge.agents.advocate.agent import advocate_agent
 from judge.agents.skeptic.agent import skeptic_agent
 from judge.agents.devil.agent import devil_agent
@@ -166,14 +168,18 @@ def log_tool_output(tool, args=None, tool_context=None, tool_response=None, resu
         sr_path = st.get("state_record_path")
         if sr_path:
             try:
-                record = {
-                    "type": "tool_output",
-                    "tool": tool.name,
-                    "speaker": speaker,
-                    "claim": claim,
-                    "payload": payload,
-                }
-                record_agent_event(st, speaker, record, sr_path)
+                # 將工具輸出記錄為事件並更新 state
+                append_event(
+                    Event(
+                        author=speaker,
+                        actions=EventActions(
+                            state_delta={
+                                key: payload,
+                                "debate_messages": st.get("debate_messages"),
+                            }
+                        ),
+                    )
+                )
             except Exception:
                 pass
     return response

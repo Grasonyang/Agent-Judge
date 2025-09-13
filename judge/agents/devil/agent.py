@@ -5,7 +5,9 @@ from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence
-from judge.tools._state_record import record_agent_event
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 class DevilOutput(BaseModel):
     stance: str = Field(description="極端質疑的核心立場，單句")
@@ -56,9 +58,13 @@ def _record_devil(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("devil_turn")
-    record_agent_event(state, "devil", {"type": "devil_turn", "payload": output}, sr)
+    append_event(
+        Event(
+            author="devil",
+            actions=EventActions(state_delta={"devil_turn": output}),
+        )
+    )
 
 devil_agent.after_agent_callback = _record_devil
 

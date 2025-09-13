@@ -8,7 +8,9 @@ from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 # 採用絕對匯入以確保 Evidence 類別在各層級皆可正確引用
 from judge.tools.evidence import Evidence
-from judge.tools._state_record import record_agent_event
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+from judge.tools import append_event
 
 
 # -------- Schema（輸入/輸出）---------
@@ -96,9 +98,13 @@ def _record_curator(agent_context=None, **_):
     if agent_context is None:
         return None
     state = agent_context.state
-    sr = state.get("state_record_path")
     output = state.get("curation")
-    record_agent_event(state, "curator", {"type": "curation", "payload": output}, sr)
+    append_event(
+        Event(
+            author="curator",
+            actions=EventActions(state_delta={"curation": output}),
+        )
+    )
 
 curator_agent.after_agent_callback = _record_curator
 
