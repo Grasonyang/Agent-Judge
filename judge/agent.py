@@ -8,7 +8,10 @@ from judge.agents import (
     jury_agent,
     synthesizer_agent,
 )
-from judge.tools import _before_init_session
+from judge.tools import _before_init_session, create_session
+
+# 啟動時建立 Session，初始化 state 與事件
+create_session()
 
 # =============== Root Pipeline ===============
 # 固定順序：Curator → Historian → 主持人回合制（正/反/極端）→ Social → Evidence → Jury → Synthesizer(JSON)

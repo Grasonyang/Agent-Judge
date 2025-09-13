@@ -28,25 +28,58 @@ from ._record_utils import (
 )
 
 
-# 建立全域 InMemorySessionService 與 Session 物件
+# 建立全域 InMemorySessionService
 session_service = InMemorySessionService()
-# 建立 Session 時統一指定初始 state
-SESSION: Session = session_service.create_session_sync(
-    app_name="agent_judge",
-    user_id="user",
-    state={
-        "debate_messages": [],  # 儲存辯論訊息
-        "agents": [],           # 紀錄參與代理
-    },
-)
+SESSION: Session | None = None
+
+
+def create_session(state: dict | None = None) -> Session:
+    """建立 Session 並設定初始 state"""
+
+    global SESSION
+    SESSION = asyncio.run(
+        session_service.create_session(
+            app_name="agent_judge",
+            user_id="user",
+            state=state
+            or {
+                "debate_messages": [],  # 儲存辯論訊息
+                "agents": [],  # 紀錄參與代理
+            },
+        )
+    )
+    return SESSION
+
+
+def get_session() -> Session:
+    """取得最新 Session（含 state 與 events）"""
+
+    if SESSION is None:
+        raise RuntimeError("Session 尚未建立")
+    return asyncio.run(
+        session_service.get_session(
+            app_name=SESSION.app_name,
+            user_id=SESSION.user_id,
+            session_id=SESSION.id,
+        )
+    )
 
 
 def append_event(event: Event) -> Event:
     """同步加入事件到全域 Session 並更新指標。"""
 
+    if SESSION is None:
+        raise RuntimeError("Session 尚未建立")
     result = asyncio.run(session_service.append_event(SESSION, event))
     update_state_from_session(SESSION.state, SESSION)
     return result
+
+
+def export_latest_debate_log() -> str:
+    """透過 SessionService 取得最新事件並輸出辯論紀錄"""
+
+    session = get_session()
+    return export_debate_log(session)
 
 
 def _before_init_session(agent_context=None, **_):
@@ -74,8 +107,11 @@ __all__ = [
     "Evidence",
     "curator_result_to_evidence",
     "SESSION",
+    "create_session",
+    "get_session",
     "append_event",
     "export_debate_log",
+    "export_latest_debate_log",
     "_before_init_session",
 ]
 
