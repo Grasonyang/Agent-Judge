@@ -6,8 +6,6 @@ from google.adk.tools.google_search_tool import GoogleSearchTool
 from google.genai import types
 
 from judge.tools.evidence import Evidence
-from judge.tools import make_record_callback
-from functools import partial
 
 
 # ==== 查核結果資料模型 ====
@@ -64,7 +62,3 @@ evidence_agent = SequentialAgent(
 )
 
 
-def register_session(append_event):
-    evidence_agent.after_agent_callback = partial(
-        make_record_callback("evidence", "evidence"), append_event=append_event
-    )

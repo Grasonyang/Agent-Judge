@@ -2,9 +2,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.genai import types
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
-from functools import partial
 
 # ===== 報告 Schema（ONLY JSON）=====
 class StakeSummary(BaseModel):
@@ -61,19 +58,6 @@ def _ensure_and_flatten_fallacies(callback_context=None, **_):
     return None
 
 
-def _record_synthesis(agent_context=None, append_event=None, **_):
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("final_report_json")
-    append_event(
-        Event(
-            author="synthesizer",
-            actions=EventActions(state_delta={"final_report_json": output}),
-        )
-    )
-
-
 # ===== Synthesizer：整合所有 JSON 成為 FinalReport JSON =====
 synthesizer_agent = LlmAgent(
     name="synthesizer",
@@ -105,10 +89,4 @@ synthesizer_agent = LlmAgent(
     before_agent_callback=_ensure_and_flatten_fallacies,
     after_agent_callback=None,
 )
-
-
-def register_session(append_event):
-    synthesizer_agent.after_agent_callback = partial(
-        _record_synthesis, append_event=append_event
-    )
 

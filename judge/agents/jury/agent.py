@@ -3,9 +3,6 @@ from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.adk.planners import BuiltInPlanner
 from google.genai import types
-from functools import partial
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
 
 # ---- 評分維度（你架構文件中第三階段的建議分數項）----
 class ScoreDetail(BaseModel):
@@ -21,26 +18,12 @@ class Finding(BaseModel):
     refs: List[str] = Field(default_factory=list, description="可附上引用的URL清單")
 
 
-class JuryOutput(BaseModel):
     verdict: str = Field(description="簡短結論：如 '正方較有說服力' 或 '證據不足'")
     scores: ScoreDetail
     strengths: List[Finding] = Field(description="哪一方強在哪裡（2~5 條）")
     weaknesses: List[Finding] = Field(description="主要缺陷或風險（2~5 條）")
     flagged_fallacies: List[str] = Field(default_factory=list, description="主持人或評審辨識的邏輯謬誤")
     next_questions: List[str] = Field(default_factory=list, description="尚待澄清/查證的重點問題")
-
-
-def _record_jury(agent_context=None, append_event=None, **_):
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("jury_result")
-    append_event(
-        Event(
-            author="jury",
-            actions=EventActions(state_delta={"jury_result": output}),
-        )
-    )
 
 
 # ---------- 聚合 fallacies 的前置處理 ----------
@@ -95,8 +78,4 @@ jury_agent = LlmAgent(
     before_agent_callback=_ensure_and_flatten_fallacies,
     after_agent_callback=None,
 )
-
-
-def register_session(append_event):
-    jury_agent.after_agent_callback = partial(_record_jury, append_event=append_event)
 

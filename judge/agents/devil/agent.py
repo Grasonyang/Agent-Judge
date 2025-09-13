@@ -5,9 +5,6 @@ from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence
-from functools import partial
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
 
 class DevilOutput(BaseModel):
     stance: str = Field(description="極端質疑的核心立場，單句")
@@ -47,19 +44,6 @@ devil_schema_agent = LlmAgent(
 )
 
 
-def _record_devil(agent_context=None, append_event=None, **_):
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("devil_turn")
-    append_event(
-        Event(
-            author="devil",
-            actions=EventActions(state_delta={"devil_turn": output}),
-        )
-    )
-
-
 # 保留前置處理介面，目前無需額外動作
 def _before_devil(agent_context=None, **_):
     return None
@@ -72,9 +56,5 @@ devil_agent = SequentialAgent(
     before_agent_callback=_before_devil,
     after_agent_callback=None,
 )
-
-
-def register_session(append_event):
-    devil_agent.after_agent_callback = partial(_record_devil, append_event=append_event)
 
 
