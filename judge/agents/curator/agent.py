@@ -8,9 +8,8 @@ from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 # 採用絕對匯入以確保 Evidence 類別在各層級皆可正確引用
 from judge.tools.evidence import Evidence
+from judge.tools import make_record_callback
 from functools import partial
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
 
 
 # -------- Schema（輸入/輸出）---------
@@ -94,19 +93,8 @@ curator_agent = SequentialAgent(
 )
 
 
-def _record_curator(agent_context=None, append_event=None, **_):
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("curation")
-    append_event(
-        Event(
-            author="curator",
-            actions=EventActions(state_delta={"curation": output}),
-        )
-    )
-
-
 def register_session(append_event):
-    curator_agent.after_agent_callback = partial(_record_curator, append_event=append_event)
+    curator_agent.after_agent_callback = partial(
+        make_record_callback("curator", "curation"), append_event=append_event
+    )
 

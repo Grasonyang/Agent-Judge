@@ -5,9 +5,8 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence
+from judge.tools import make_record_callback
 from functools import partial
-from google.adk.events.event import Event
-from google.adk.events.event_actions import EventActions
 
 
 # ---- 讀 Curator 的證據結構（最小鏡像；如你已有型別可改 from ... import） ----
@@ -64,24 +63,9 @@ advocate_schema_agent = LlmAgent(
 )
 
 
-def _record_advocacy(agent_context=None, append_event=None, **_):
-    """after_agent_callback to append advocacy output to state_record if available"""
-    if agent_context is None or append_event is None:
-        return None
-    state = agent_context.state
-    output = state.get("advocacy")
-    # 使用 Session 事件記錄最新的正方輸出
-    append_event(
-        Event(
-            author="advocate",
-            actions=EventActions(state_delta={"advocacy": output}),
-        )
-    )
-
-
 def register_session(append_event):
     advocate_schema_agent.after_agent_callback = partial(
-        _record_advocacy, append_event=append_event
+        make_record_callback("advocate", "advocacy"), append_event=append_event
     )
 
 
