@@ -16,6 +16,7 @@ from ._debate_log import (
     initialize_debate_log,
     update_state_from_session,
     export_debate_log,
+    export_session,
 )
 from .evidence import Evidence, curator_result_to_evidence
 from ._record_utils import (
@@ -82,6 +83,15 @@ def export_latest_debate_log() -> str:
     return export_debate_log(session)
 
 
+def export_latest_session(path: str = "debate_log.json") -> dict:
+    """匯出最新 Session 並保存為 JSON 檔"""
+
+    session = get_session()
+    data = export_session(session)
+    write_json_file(path, data)
+    return data
+
+
 def _before_init_session(agent_context=None, **_):
     """在 agent 執行前初始化辯論紀錄（寫入 state）。"""
 
@@ -112,6 +122,8 @@ __all__ = [
     "append_event",
     "export_debate_log",
     "export_latest_debate_log",
+    "export_session",
+    "export_latest_session",
     "_before_init_session",
 ]
 
