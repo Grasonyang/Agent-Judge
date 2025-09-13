@@ -10,6 +10,8 @@ from google.adk.events.event_actions import EventActions
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.sessions.session import Session
 
+from judge.services.session import session_service
+
 from ._debate_log import (
     Turn,
     load_debate_log,
@@ -30,8 +32,6 @@ from ._record_utils import (
 )
 
 
-# 建立全域 InMemorySessionService（可依需求替換為其他實作）
-session_service = InMemorySessionService()
 
 
 def append_event(session: Session, event: Event, service: InMemorySessionService = session_service) -> Event:

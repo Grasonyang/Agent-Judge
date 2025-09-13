@@ -4,8 +4,9 @@ import asyncio
 from functools import partial
 
 from google.adk.agents import LlmAgent, SequentialAgent
-from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.sessions.session import Session
+
+from judge.services.session import session_service
 
 from judge.agents.advocate.agent import (
     advocate_agent,
@@ -52,10 +53,6 @@ from judge.agents.synthesizer.agent import (
     register_session as register_synthesizer,
 )
 from judge.tools import _before_init_session, append_event
-
-
-# 建立 SessionService（可替換為其他實作）
-session_service = InMemorySessionService()
 
 
 def create_session(state: dict | None = None) -> Session:
