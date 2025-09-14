@@ -4,7 +4,7 @@ from google.adk.agents import LlmAgent
 from google.genai import types
 from judge.tools import flatten_fallacies
 
-# ===== 報告 Schema（ONLY JSON）=====
+
 class StakeSummary(BaseModel):
     side: str = Field(description="立場/角色，如 'Advocate'、'Skeptic'、'Devil'")
     thesis: str = Field(description="該方核心主張（或反主張）")
@@ -39,18 +39,14 @@ class FinalReport(BaseModel):
     appendix_links: List[str] = Field(default_factory=list, description="附錄連結（辯論日誌/原始證據等）")
 
 
-# ---------- 同 Jury：前置處理，建立 fallacy_list ----------
 def _ensure_and_flatten_fallacies(callback_context=None, **_):
-    """在執行前將辯論謬誤扁平化存入 state。"""
     if callback_context is None:
         return None
     state = callback_context.state
-    # 使用共用工具取得扁平化後的謬誤列表
     state["fallacy_list"] = flatten_fallacies(state["debate_messages"])
     return None
 
 
-# ===== Synthesizer：整合所有 JSON 成為 FinalReport JSON =====
 synthesizer_agent = LlmAgent(
     name="synthesizer",
     model="gemini-2.5-flash",
@@ -72,11 +68,9 @@ synthesizer_agent = LlmAgent(
         "5) appendix_links 可放『辯論日誌』或外部來源列表連結（若有）。"
     ),
     output_schema=FinalReport,
-    # 禁止傳遞以避免 output_schema 衝突
     disallow_transfer_to_parent=True,
     disallow_transfer_to_peers=True,
     output_key="final_report_json",
-    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
     before_agent_callback=_ensure_and_flatten_fallacies,
     after_agent_callback=None,

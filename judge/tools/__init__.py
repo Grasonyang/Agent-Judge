@@ -8,28 +8,19 @@ from google.adk.events.event_actions import EventActions
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.sessions.session import Session
 
-from judge.services.session import session_service
+from judge.tools.session_service import session_service
 
-from ._debate_log import (
+from .debate_log import (
     Turn,
-    load_debate_log,
-    save_debate_log,
-    initialize_debate_log,
+    initialize_debate_state,
     update_state_from_session,
     append_event_update,
     export_debate_log,
     export_session,
 )
 from .evidence import Evidence, curator_result_to_evidence
-from ._record_utils import (
-    ensure_parent_dir,
-    read_json_file,
-    write_json_file,
-    append_to_json_array,
-    append_ndjson,
-    read_ndjson,
-)
-from .fallacy_utils import flatten_fallacies
+from .file_io import ensure_parent_dir, write_json_file
+from .fallacies import flatten_fallacies
 
 
 
@@ -107,27 +98,18 @@ async def export_latest_session(
 
 
 def _before_init_session(agent_context=None, **_):
-    """在 agent 執行前初始化辯論紀錄（寫入 state）。"""
-
+    """在 agent 執行前初始化辯論相關的 state（無檔案耦合）。"""
     if agent_context is None:
         return None
-    state = agent_context.state
-    # 僅初始化辯論紀錄檔；state 變更將透過 session events 儲存
-    initialize_debate_log("debate_log.json", state, reset=True)
+    initialize_debate_state(agent_context.state, reset=True)
     return None
 
 
 __all__ = [
     "Turn",
-    "load_debate_log",
-    "save_debate_log",
-    "initialize_debate_log",
+    "initialize_debate_state",
     "ensure_parent_dir",
-    "read_json_file",
     "write_json_file",
-    "append_to_json_array",
-    "append_ndjson",
-    "read_ndjson",
     "Evidence",
     "curator_result_to_evidence",
     "append_event",
@@ -141,4 +123,3 @@ __all__ = [
     "_before_init_session",
     "flatten_fallacies",
 ]
-

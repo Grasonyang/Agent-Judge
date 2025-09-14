@@ -8,19 +8,15 @@ from google.genai import types
 from judge.tools.evidence import Evidence
 
 
-# ==== 查核結果資料模型 ====
 class CheckedClaim(BaseModel):
-    """單一句子與其證據鍊"""
     claim: str = Field(description="待查證的命題")
     evidences: List[Evidence] = Field(description="對應的證據鍊列表")
 
 
 class EvidenceCheckOutput(BaseModel):
-    """多條命題的查核結果"""
     checked_claims: List[CheckedClaim] = Field(description="查核後的命題與證據鍊")
 
 
-# Step 1: 使用 Google 搜尋補齊證據
 _evidence_tool_agent = LlmAgent(
     name="evidence_tool_runner",
     model="gemini-2.5-flash",
@@ -33,7 +29,6 @@ _evidence_tool_agent = LlmAgent(
 )
 
 
-# Step 2: 轉為結構化證據鍊 JSON
 _evidence_schema_agent = LlmAgent(
     name="evidence_schema_validator",
     model="gemini-2.5-flash",
@@ -48,17 +43,14 @@ _evidence_schema_agent = LlmAgent(
 )
 
 
-# 保留前置處理介面，目前無需額外動作
 def _before_evidence(agent_context=None, **_):
     return None
 
 
-# 公開的 Evidence Agent，先查詢再整理
 evidence_agent = SequentialAgent(
     name="evidence_agent",
     sub_agents=[_evidence_tool_agent, _evidence_schema_agent],
     before_agent_callback=_before_evidence,
     after_agent_callback=None,
 )
-
 

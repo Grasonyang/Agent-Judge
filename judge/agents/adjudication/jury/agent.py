@@ -1,11 +1,10 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
-from google.adk.planners import BuiltInPlanner
 from google.genai import types
 from judge.tools import flatten_fallacies
 
-# ---- 評分維度（你架構文件中第三階段的建議分數項）----
+
 class ScoreDetail(BaseModel):
     evidence_quality: int = Field(ge=0, le=30, description="證據品質 0~30")
     logical_rigor: int = Field(ge=0, le=30, description="邏輯嚴謹性 0~30")
@@ -19,6 +18,7 @@ class Finding(BaseModel):
     refs: List[str] = Field(default_factory=list, description="可附上引用的URL清單")
 
 
+class JuryOutput(BaseModel):
     verdict: str = Field(description="簡短結論：如 '正方較有說服力' 或 '證據不足'")
     scores: ScoreDetail
     strengths: List[Finding] = Field(description="哪一方強在哪裡（2~5 條）")
@@ -27,13 +27,10 @@ class Finding(BaseModel):
     next_questions: List[str] = Field(default_factory=list, description="尚待澄清/查證的重點問題")
 
 
-# ---------- 聚合 fallacies 的前置處理 ----------
 def _ensure_and_flatten_fallacies(callback_context=None, **_):
-    """在執行前扁平化辯論訊息中的謬誤。"""
     if callback_context is None:
         return None
     state = callback_context.state
-    # 直接使用共用工具將所有回合的謬誤扁平化
     state["fallacy_list"] = flatten_fallacies(state["debate_messages"])
     return None
 
@@ -44,11 +41,11 @@ jury_agent = LlmAgent(
     instruction=(
         "你是陪審團，請根據完整辯論紀錄與證據，進行客觀量化評分並給出裁決。\n\n"
         "【輸入】\n"
-"CURATION(JSON): {curation}\n"
-"ADVOCACY(JSON): (the current advocacy JSON in state['advocacy'], if any)\n"
-"SKEPTICISM(JSON): (the current skepticism JSON in state['skepticism'], if any)\n"
-"DEBATE(LOG): (the current debate messages stored in state['debate_messages'])\n"
-"SOCIAL_LOG(JSON): {social_log}\n\n"
+        "CURATION(JSON): {curation}\n"
+        "ADVOCACY(JSON): (the current advocacy JSON in state['advocacy'], if any)\n"
+        "SKEPTICISM(JSON): (the current skepticism JSON in state['skepticism'], if any)\n"
+        "DEBATE(LOG): (the current debate messages stored in state['debate_messages'])\n"
+        "SOCIAL_LOG(JSON): {social_log}\n\n"
         "【評分規則】\n"
         "- evidence_quality: 來源權威性/時效性/相關性（0~30）\n"
         "- logical_rigor: 是否自洽、是否有謬誤（0~30）\n"
@@ -59,11 +56,9 @@ jury_agent = LlmAgent(
         "嚴格輸出 JSON，必須符合 JuryOutput schema；不要多餘文字。"
     ),
     output_schema=JuryOutput,
-    # 禁止輸出傳遞，避免 schema 衝突
     disallow_transfer_to_parent=True,
     disallow_transfer_to_peers=True,
     output_key="jury_result",
-    # planner removed to avoid sending thinking config to model
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
     before_agent_callback=_ensure_and_flatten_fallacies,
     after_agent_callback=None,

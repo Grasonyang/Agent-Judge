@@ -2,17 +2,17 @@
 Agents package: 聚合所有子代理
 """
 
-from .advocate.agent import advocate_agent
-from .curator.agent import curator_agent
-from .historian.agent import historian_agent
-from .devil.agent import devil_agent
-from .jury.agent import jury_agent
-from .moderator.agent import orchestrator_agent, referee_loop
-from .skeptic.agent import skeptic_agent
-from .synthesizer.agent import synthesizer_agent
+from .debate.moderator.debaters.advocate.agent import advocate_agent
+from .knowledge.curator import curator_agent
+from .knowledge.historian import historian_agent
+from .debate.moderator.debaters.devil.agent import devil_agent
+from .adjudication.jury import jury_agent
+from .debate.moderator.agent import orchestrator_agent, referee_loop
+from .debate.moderator.debaters.skeptic.agent import skeptic_agent
+from .adjudication.synthesizer import synthesizer_agent
 from .social.agent import social_summary_agent
 from .social_noise.agent import social_noise_agent
-from .evidence.agent import evidence_agent
+from .adjudication.evidence import evidence_agent
 
 __all__ = [
     "advocate_agent",

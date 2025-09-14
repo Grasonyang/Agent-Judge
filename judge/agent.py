@@ -5,20 +5,20 @@ from functools import partial
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.sessions.session import Session
 
-from judge.services.session import session_service
+from judge.tools.session_service import session_service
 
-from judge.agents.advocate.agent import advocate_agent
-from judge.agents.curator.agent import curator_agent
-from judge.agents.devil.agent import devil_agent
-from judge.agents.evidence.agent import evidence_agent
-from judge.agents.historian.agent import historian_agent
-from judge.agents.jury.agent import jury_agent
-from judge.agents.moderator.agent import referee_loop, executor_agent
-from judge.agents.moderator.tools import log_tool_output
-from judge.agents.skeptic.agent import skeptic_agent
+from judge.agents.debate.moderator.debaters.advocate.agent import advocate_agent
+from judge.agents.knowledge.curator import curator_agent
+from judge.agents.debate.moderator.debaters.devil.agent import devil_agent
+from judge.agents.adjudication.evidence import evidence_agent
+from judge.agents.knowledge.historian import historian_agent
+from judge.agents.adjudication.jury import jury_agent
+from judge.agents.debate.moderator.agent import referee_loop, executor_agent
+from judge.agents.debate.moderator.tools import log_tool_output
+from judge.agents.debate.moderator.debaters.skeptic.agent import skeptic_agent
 from judge.agents.social.agent import social_summary_agent
 from judge.agents.social_noise.agent import social_noise_agent
-from judge.agents.synthesizer.agent import synthesizer_agent
+from judge.agents.adjudication.synthesizer import synthesizer_agent
 
 from judge.tools import _before_init_session, append_event, make_record_callback
 
