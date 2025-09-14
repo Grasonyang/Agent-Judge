@@ -35,7 +35,10 @@ decision_agent = LlmAgent(
     disallow_transfer_to_parent=True,
     disallow_transfer_to_peers=True,
     output_key="next_decision",
-    generate_content_config=types.GenerateContentConfig(temperature=0.0),
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.0,
+        response_mime_type="application/json"
+    ),
 )
 
 
@@ -52,7 +55,10 @@ executor_agent = LlmAgent(
     tools=[advocate_tool, skeptic_tool, devil_tool],
     after_tool_callback=None,
     output_key="orchestrator_exec",
-    generate_content_config=types.GenerateContentConfig(temperature=0.0),
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.0,
+        response_mime_type="text/plain"
+    ),
 )
 
 orchestrator_agent = SequentialAgent(
@@ -75,7 +81,10 @@ stop_checker = LlmAgent(
     ),
     before_agent_callback=ensure_debate_messages,
     output_key="stop_signal",
-    generate_content_config=types.GenerateContentConfig(temperature=0.0),
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0.0,
+        response_mime_type="text/plain"
+    ),
 )
 
 referee_loop = LoopAgent(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
@@ -38,7 +39,7 @@ async def append_event(
     return result
 
 
-def make_record_callback(author: str, key: str):
+def make_record_callback(author: str, key: str, show_pretty_message: bool = False):
     """建立統一的 after_agent_callback 以記錄代理輸出
 
     會從 state 中擷取資料，並透過 google.adk 的事件 API 寫入 Session。
@@ -57,9 +58,22 @@ def make_record_callback(author: str, key: str):
         # 優先讀取 *_report，否則回退至原始 key
         output = state.get(f"{key}_report") or state.get(key)
 
+        # 可選：將結構化輸出同時以 pretty JSON 作為 message 供 Web/CLI 檢視
+        message: str | None = None
+        if show_pretty_message and output is not None:
+            try:
+                if hasattr(output, "model_dump"):
+                    data = output.model_dump()
+                else:
+                    data = output
+                message = json.dumps(data, ensure_ascii=False, indent=2)
+            except Exception:
+                # 退回為字串
+                message = str(output)
+
         # 非同步寫入事件，確保使用同一事件迴圈
         await append_event(
-            Event(author=author, actions=EventActions(state_delta={key: output}))
+            Event(author=author, actions=EventActions(state_delta={key: output}, message=message))
         )
 
         return None

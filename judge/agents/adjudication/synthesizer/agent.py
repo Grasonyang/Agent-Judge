@@ -1,6 +1,9 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
+import json
 from google.genai import types
 from judge.tools import flatten_fallacies
 
@@ -49,6 +52,24 @@ def _ensure_and_flatten_fallacies(callback_context=None, **_):
     return None
 
 
+def _pretty_after(agent_context=None, **_):
+    if agent_context is None:
+        return None
+    st = agent_context.state
+    out = st.get("final_report_json")
+    if out is None:
+        return None
+    try:
+        if hasattr(out, "model_dump"):
+            data = out.model_dump()
+        else:
+            data = out
+        msg = json.dumps(data, ensure_ascii=False, indent=2)
+    except Exception:
+        msg = str(out)
+    return Event(author="synthesizer", actions=EventActions(message=msg))
+
+
 synthesizer_agent = LlmAgent(
     name="synthesizer",
     model="gemini-2.5-flash",
@@ -75,5 +96,5 @@ synthesizer_agent = LlmAgent(
     output_key="final_report_json",
     generate_content_config=types.GenerateContentConfig(temperature=0.0),
     before_agent_callback=_ensure_and_flatten_fallacies,
-    after_agent_callback=None,
+    after_agent_callback=_pretty_after,
 )

@@ -46,22 +46,23 @@ def bind_session(session: Session) -> None:
 
     # 統一列出需要寫入事件的代理與對應鍵值
     agent_event_map = [
-        (curator_agent, "curator", "curation"),
-        (historian_agent, "historian", "history"),
-        (social_summary_agent, "social", "social_log"),
-        (evidence_agent, "evidence", "evidence"),
-        (jury_agent, "jury", "jury_result"),
-        (synthesizer_agent, "synthesizer", "final_report_json"),
-        (advocate_agent, "advocate", "advocacy"),
-        (skeptic_agent, "skeptic", "skepticism"),
-        (devil_agent, "devil", "devil_turn"),
-        (social_noise_agent, "social_noise", "social_noise"),
+        (curator_agent, "curator", "curation", False),
+        (historian_agent, "historian", "history", False),
+        (social_summary_agent, "social", "social_log", False),
+        (evidence_agent, "evidence", "evidence", False),
+        # 在 Web/CLI 中同時顯示美化後的 JSON
+        (jury_agent, "jury", "jury_result", True),
+        (synthesizer_agent, "synthesizer", "final_report_json", True),
+        (advocate_agent, "advocate", "advocacy", False),
+        (skeptic_agent, "skeptic", "skepticism", False),
+        (devil_agent, "devil", "devil_turn", False),
+        (social_noise_agent, "social_noise", "social_noise", False),
     ]
 
     # 迴圈設定 after_agent_callback，透過 make_record_callback 統一寫入事件
-    for agent, author, key in agent_event_map:
+    for agent, author, key, show_pretty in agent_event_map:
         agent.after_agent_callback = partial(
-            make_record_callback(author, key), append_event=append_event_fn
+            make_record_callback(author, key, show_pretty_message=show_pretty), append_event=append_event_fn
         )
 
     # 主持人執行器需額外紀錄工具輸出

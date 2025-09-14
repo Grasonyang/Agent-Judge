@@ -59,6 +59,36 @@ def ensure_debate_messages(callback_context=None, **_):
     return None
 
 
+def _summarize_payload(payload, speaker: str) -> str:
+    try:
+        if hasattr(payload, "model_dump"):
+            payload = payload.model_dump()
+    except Exception:
+        pass
+
+    if isinstance(payload, dict):
+        if speaker == "advocate":
+            thesis = payload.get("thesis")
+            points = payload.get("key_points") or []
+            if thesis and isinstance(points, list):
+                pts = "\n".join(f"- {p}" for p in points[:5])
+                return f"Thesis: {thesis}\n{pts}".strip()
+        if speaker == "skeptic":
+            ct = payload.get("counter_thesis")
+            ch = payload.get("challenges") or []
+            if ct and isinstance(ch, list):
+                pts = "\n".join(f"- {p}" for p in ch[:5])
+                return f"Counter-thesis: {ct}\n{pts}".strip()
+        if speaker == "devil":
+            stance = payload.get("stance")
+            atk = payload.get("attack_points") or []
+            if stance and isinstance(atk, list):
+                pts = "\n".join(f"- {p}" for p in atk[:5])
+                return f"Stance: {stance}\n{pts}".strip()
+    # fallback to string
+    return str(payload)
+
+
 async def log_tool_output(tool, args=None, tool_context=None, tool_response=None, result=None, append_event=None, **_):
     response = tool_response if tool_response is not None else result
     info = LOG_MAP.get(tool.name)
@@ -81,10 +111,14 @@ async def log_tool_output(tool, args=None, tool_context=None, tool_response=None
         else:
             payload = {"text": str(output)}
 
+        # Create a human-friendly summary for content
+        content_text = _summarize_payload(payload, speaker)
+
         st["debate_messages"].append({
             "speaker": speaker,
-            "content": payload,
+            "content": content_text,
             "claim": claim,
+            "data": payload,
         })
         if append_event is not None:
             try:
