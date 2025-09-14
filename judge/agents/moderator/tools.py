@@ -6,12 +6,9 @@ from google.adk.tools.agent_tool import AgentTool
 
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
-from .debaters.advocate.agent import advocate_agent
-from .debaters.skeptic.agent import skeptic_agent
-from .debaters.devil.agent import devil_agent
-from .debaters.advocate import advocate_agent
-from .debaters.skeptic import skeptic_agent
-from .debaters.devil import devil_agent
+from .advocate import advocate_agent
+from .skeptic import skeptic_agent
+from .devil import devil_agent
 
 LOG_MAP = {
     "call_advocate": ("advocate", "advocacy"),
@@ -54,6 +51,11 @@ def should_stop(state) -> bool:
 
 
 def ensure_debate_messages(callback_context=None, **_):
+    if callback_context is None:
+        return None
+    st = callback_context.state
+    if "debate_messages" not in st or not isinstance(st.get("debate_messages"), list):
+        st["debate_messages"] = []
     return None
 
 

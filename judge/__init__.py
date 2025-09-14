@@ -1,12 +1,19 @@
-"""Judge 套件初始化。
+"""Judge package init
 
-此模組原本在載入時即匯入 `root_agent`，但這會造成部分模組
-在匯入過程中因循環依賴而失敗。為了讓工具模組可以獨立使用，
-這裡改為延遲載入 `root_agent`：需要使用時再從 `judge.agent`
-匯入。
+To align with ADK CLI expectations (which access ``package.agent.root_agent``),
+expose the ``agent`` submodule as an attribute while avoiding eager imports
+of agent objects at top-level.
 """
 
-root_agent = None  # 將在需要時由呼叫端自行匯入
+from importlib import import_module as _import_module
 
-__all__ = ["root_agent"]
+# Expose submodule so `judge.agent` is accessible as an attribute of the package
+try:
+    agent = _import_module(__name__ + ".agent")
+except Exception:  # During some tooling imports, the agent module may not load
+    agent = None
 
+# Keep a placeholder for compatibility; actual root_agent lives in judge.agent
+root_agent = None
+
+__all__ = ["agent", "root_agent"]

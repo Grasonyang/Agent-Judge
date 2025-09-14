@@ -3,7 +3,7 @@ Moderator orchestrator: decision, execution, and stop-checker agents.
 
 This module wires together the moderator's LLM sub-agents and the
 referee LoopAgent. Helper functions and AgentTool wrappers live in
-`judge.agents.debate.moderator.tools`.
+`judge.agents.moderator.tools`.
 """
 
 from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
@@ -17,7 +17,7 @@ from .tools import (
     devil_tool,
     NextTurnDecision,
 )
-from judge.agents.social_noise.agent import social_noise_agent
+from judge.agents.social.noise.agent import social_noise_agent
 
 
 # --- Step 1: decision agent (schema-only) ---
@@ -83,4 +83,3 @@ referee_loop = LoopAgent(
     sub_agents=[social_noise_agent, orchestrator_agent, stop_checker],
     max_iterations=1,
 )
-

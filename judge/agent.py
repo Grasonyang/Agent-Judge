@@ -7,18 +7,19 @@ from google.adk.sessions.session import Session
 
 from judge.tools.session_service import session_service
 
-from judge.agents.debate.moderator.debaters.advocate.agent import advocate_agent
+from judge.agents.moderator.advocate.agent import advocate_agent
 from judge.agents.knowledge.curator import curator_agent
-from judge.agents.debate.moderator.debaters.devil.agent import devil_agent
+from judge.agents.moderator.devil.agent import devil_agent
+from judge.agents.adjudication.agent import adjudication_agent
 from judge.agents.adjudication.evidence import evidence_agent
-from judge.agents.knowledge.historian import historian_agent
 from judge.agents.adjudication.jury import jury_agent
-from judge.agents.debate.moderator.agent import referee_loop, executor_agent
-from judge.agents.debate.moderator.tools import log_tool_output
-from judge.agents.debate.moderator.debaters.skeptic.agent import skeptic_agent
+from judge.agents.adjudication.synthesizer.agent import synthesizer_agent
+from judge.agents.knowledge.historian import historian_agent
+from judge.agents.moderator.agent import referee_loop, executor_agent
+from judge.agents.moderator.tools import log_tool_output
+from judge.agents.moderator.skeptic.agent import skeptic_agent
 from judge.agents.social.agent import social_summary_agent
-from judge.agents.social_noise.agent import social_noise_agent
-from judge.agents.adjudication.synthesizer import synthesizer_agent
+from judge.agents.social.noise.agent import social_noise_agent
 
 from judge.tools import _before_init_session, append_event, make_record_callback
 
@@ -88,9 +89,7 @@ root_agent = SequentialAgent(
         historian_agent,
         referee_loop,
         social_summary_agent,
-        evidence_agent,
-        jury_agent,
-        synthesizer_agent,
+        adjudication_agent,
     ],
 )
 

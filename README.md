@@ -38,19 +38,25 @@ adk run root_agent
 Curator → Historian → Moderator 的流程自資料整理、歷史脈絡建構到辯論主持，逐步完成查核與分析。
 
 ## 專案結構要點（對齊 Architecture）
-- `judge/agents/debate/`：辯論層（Core Debate Arena）
-  - `moderator/agent.py`：決策/執行/停迴圈
-  - `moderator/tools.py`：主持人工具與事件紀錄
-  - `moderator/debaters/`：`advocate.py`、`skeptic.py`、`devil.py`
+- `judge/agents/moderator/`：辯論層（Core Debate Arena）
+  - `agent.py`：決策/執行/停迴圈（Moderator orchestrator + Loop）
+  - `tools.py`：主持人工具與事件紀錄
+  - `advocate/agent.py`、`skeptic/agent.py`、`devil/agent.py`（正反與 Devil 置於主持人之下）
 - `judge/agents/knowledge/`：資料與脈絡層
-  - `curator.py`、`historian.py`
+  - `curator/agent.py`、`historian/agent.py`
 - `judge/agents/adjudication/`：裁決與整合層
-  - `evidence.py`、`jury.py`、`synthesizer.py`
+  - `evidence/agent.py`、`jury/agent.py`、`synthesizer/agent.py`
+- `judge/agents/social/`：社會擴散與噪音回饋層
+  - `agent.py`：社會擴散統整，產出 `social_log`
+  - `noise/agent.py`：噪音模擬與聚合，產出 `state['social_noise']`
+  - `echo/agent.py`：Echo Chamber 子代理
+  - `influencer/agent.py`：Influencer 子代理（支援多個）
+  - `disrupter/agent.py`：Disrupter 子代理
 - `judge/tools/`：統一工具
   - `session_service.py`（服務集中於 tools）
   - `debate_log.py`、`fallacies.py`、`file_io.py`、`evidence.py`
 
-相容性：原路徑（如 `judge.agents.curator.agent`、`judge.agents.moderator.agent`）保留薄包裝 re-export，避免現有呼叫點破壞。
+相容性：常用路徑（如 `judge.agents.moderator.agent`、`judge.agents.moderator.advocate.agent`）與舊位置提供薄包裝 re-export，避免現有呼叫點破壞。
 
 ## Session/State
 本專案全面採用 Google ADK 的 Session/State/Memory：

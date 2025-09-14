@@ -31,7 +31,10 @@ def _ensure_and_flatten_fallacies(callback_context=None, **_):
     if callback_context is None:
         return None
     state = callback_context.state
-    state["fallacy_list"] = flatten_fallacies(state["debate_messages"])
+    # 保底確保存在辯論訊息陣列，避免 KeyError
+    msgs = state.get("debate_messages") or []
+    state["debate_messages"] = msgs
+    state["fallacy_list"] = flatten_fallacies(msgs)
     return None
 
 
@@ -63,4 +66,3 @@ jury_agent = LlmAgent(
     before_agent_callback=_ensure_and_flatten_fallacies,
     after_agent_callback=None,
 )
-
