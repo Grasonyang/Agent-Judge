@@ -7,7 +7,7 @@ from google.adk.sessions.session import Session
 
 from judge.services.session import session_service
 
-from judge.agents.advocate.agent import advocate_agent, advocate_schema_agent
+from judge.agents.advocate.agent import advocate_agent
 from judge.agents.curator.agent import curator_agent
 from judge.agents.devil.agent import devil_agent
 from judge.agents.evidence.agent import evidence_agent
@@ -15,10 +15,11 @@ from judge.agents.historian.agent import historian_agent
 from judge.agents.jury.agent import jury_agent
 from judge.agents.moderator.agent import referee_loop, executor_agent
 from judge.agents.moderator.tools import log_tool_output
-from judge.agents.skeptic.agent import skeptic_agent, skeptic_schema_agent
+from judge.agents.skeptic.agent import skeptic_agent
 from judge.agents.social.agent import social_summary_agent
 from judge.agents.social_noise.agent import social_noise_agent
 from judge.agents.synthesizer.agent import synthesizer_agent
+
 from judge.tools import _before_init_session, append_event, make_record_callback
 
 
@@ -50,8 +51,8 @@ def bind_session(session: Session) -> None:
         (evidence_agent, "evidence", "evidence"),
         (jury_agent, "jury", "jury_result"),
         (synthesizer_agent, "synthesizer", "final_report_json"),
-        (advocate_schema_agent, "advocate", "advocacy"),
-        (skeptic_schema_agent, "skeptic", "skepticism"),
+        (advocate_agent, "advocate", "advocacy"),
+        (skeptic_agent, "skeptic", "skepticism"),
         (devil_agent, "devil", "devil_turn"),
         (social_noise_agent, "social_noise", "social_noise"),
     ]
@@ -71,7 +72,7 @@ def bind_session(session: Session) -> None:
 # =============== Root Pipeline ===============
 # 固定順序：Curator → Historian → 主持人回合制（正/反/極端）→ Social → Evidence → Jury → Synthesizer(JSON)
 
-_init_session = LlmAgent(
+init_session = LlmAgent(
     name="init_session",
     model="gemini-2.5-flash",
     instruction=("初始化 session（此代理僅用於在執行前設定 state，無需輸出）。"),
@@ -82,7 +83,7 @@ _init_session = LlmAgent(
 root_agent = SequentialAgent(
     name="root_pipeline",
     sub_agents=[
-        _init_session,
+        init_session,
         curator_agent,
         historian_agent,
         referee_loop,
