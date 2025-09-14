@@ -51,43 +51,58 @@ flowchart TB
   subgraph Foundation
     C(Curator)
     H(Historian)
+    KB[(Knowledge Base)]
   end
+
   subgraph DebateArena
     M(Moderator)
     A(Advocate)
     S(Skeptic)
     Dv(Devil's Advocate)
   end
+
   subgraph Social
     EC(Echo Chamber)
     INF(Influencer)
     DIS(Disrupter)
-    SN((Social Noise))
+    SN["state['social_noise']"]
   end
+
   subgraph Judgment
     E(Evidence Checker)
     J(Jury)
     SY(Synthesizer)
   end
+
   OUT(Final Report)
 
-  C --> H --> M
-  C --> M
+  %% Foundation
+  C --> H --> KB
+  C --> KB
+  KB --> M
+
+  %% Debate Arena
   M --> A & S & Dv
   A <--> S
   S <--> Dv
   Dv <--> A
 
-  M <-- SN --> Social
+  %% Social Dynamics
   EC --> INF --> DIS --> EC
   EC --> SN
   INF --> SN
   DIS --> SN
+  DIS --> EC
+  SN --> M
+  SN --> J
 
-  M -.參考社會噪音.-> DebateArena
-
+  %% Judgment
   DebateArena --> E --> J --> SY --> OUT
   Social --> J
+
+  %% KB reference
+  KB --> A & S & Dv & E
+
 ```
 
 ---
