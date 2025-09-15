@@ -1,52 +1,7 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
-
-from google.adk.agents import LlmAgent, SequentialAgent
-from google.genai import types
-from google.adk.tools.google_search_tool import GoogleSearchTool
 from judge.tools.evidence import Evidence
-
-
-class CuratorInput(BaseModel):
-    query: str = Field(description="搜尋查詢關鍵字或問題")
-    top_k: int = Field(default=5, description="回傳前幾筆結果（1~10 建議）")
-    site: Optional[str] = Field(
-        default=None,
-        description="可選的站點過濾，如 'site:reuters.com' 或 'site:gov.tw'",
-    )
-
-
-class SearchResult(BaseModel):
-    title: str
-    url: str
-    snippet: str
-
-    def to_evidence(
-        self,
-        claim: str,
-        warrant: str,
-        method: Optional[str] = None,
-        risk: Optional[str] = None,
-        confidence: Optional[str] = None,
-    ) -> Evidence:
-        return Evidence(
-            source=self.url,
-            claim=claim,
-            warrant=warrant,
-            method=method,
-            risk=risk,
-            confidence=confidence,
-        )
-
-
-class CuratorOutput(BaseModel):
-    query: str
-    results: List[SearchResult]
-
-from typing import List, Optional
-from pydantic import BaseModel, Field
-
-from google.adk.agents import LlmAgent
+from google.adk.agents import LlmAgent, SequentialAgent
 from google.genai import types
 from google.adk.tools.google_search_tool import GoogleSearchTool
 
@@ -86,8 +41,8 @@ class CuratorOutput(BaseModel):
     results: List[SearchResult]
 
 # -------- 單一步：用工具，但「不」啟用 output_schema；直接輸出乾淨 JSON --------
-curator_agent = LlmAgent(
-    name="curator",
+curator_tool_agent = LlmAgent(
+    name="curator_runner",
     model="gemini-2.5-flash",
     instruction=(
         "你是 Curator。請依下列規則完成搜尋與輸出：\n"
@@ -111,4 +66,9 @@ curator_agent = LlmAgent(
     ),
     disallow_transfer_to_parent=True,
     disallow_transfer_to_peers=True,
+)
+
+curator_agent = SequentialAgent(
+    name="curator",
+    sub_agents=[curator_tool_agent],
 )
