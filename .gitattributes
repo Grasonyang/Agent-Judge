@@ -1,0 +1,4 @@
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+
+judge/agents/classifier/** filter=lfs diff=lfs merge=lfs -text
