@@ -39,8 +39,8 @@ def calculate_weighted_score(state_data: str = "") -> dict:
         label_to_score = {
             "完全錯誤": 0.0,
             "部分錯誤": 0.25,
-            "部分正確": 0.5,
-            "基本正確": 0.75,
+            "無法判斷": 0.5,
+            "部分正確": 0.75,
             "完全正確": 1.0
         }
         
