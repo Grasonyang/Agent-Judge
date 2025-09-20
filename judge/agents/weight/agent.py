@@ -88,7 +88,7 @@ def calculate_weighted_score(state_data: str = "") -> dict:
         llm_score = label_to_score.get(llm_label, 0.0)
         
         # 取得 SLM 分數
-        slm_score = float(slm_data.get("score", 0.0))
+        slm_score = float(slm_data.get("bert_classifier", 0.0))
         
         # 計算最終加權分數：(標籤分數*LLM權重 + SLM分數*SLM權重) / (LLM權重 + SLM權重)
         final_score = (llm_score * llm_weight + slm_score * slm_weight) / (llm_weight + slm_weight)
