@@ -31,7 +31,7 @@ _evidence_tool_agent = LlmAgent(
 
 _evidence_schema_agent = LlmAgent(
     name="evidence_schema_validator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "請整理 state['evidence_raw']，輸出符合 EvidenceCheckOutput 的 JSON。"
     ),

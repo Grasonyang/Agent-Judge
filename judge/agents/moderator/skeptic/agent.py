@@ -46,7 +46,7 @@ skeptic_tool_agent = LlmAgent(
 
 skeptic_schema_agent = LlmAgent(
     name="skeptic_schema_validator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "請根據 state['curation'] 與 state['advocacy']，以及可選的 state['skeptic_search_raw'] 補充，"
         "輸出符合 SkepticOutput schema 的 JSON（不使用任何工具）。"

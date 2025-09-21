@@ -58,7 +58,7 @@ curator_tool_agent = LlmAgent(
 
 curator_schema_agent = LlmAgent(
     name="curator_schema_validator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "你負責把 state['curation_raw'] 轉為符合 CuratorOutput schema 的 JSON，"
         "僅輸出最終的 JSON（不要多餘文字）。"

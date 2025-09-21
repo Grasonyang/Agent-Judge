@@ -28,7 +28,7 @@ devil_tool_agent = LlmAgent(
 
 devil_schema_agent = LlmAgent(
     name="devil_schema_validator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "根據 state['curation']、state['debate_messages'] 與可選的 state['devil_search_raw']，"
         "輸出符合 DevilOutput schema 的嚴格 JSON（不要多餘文字）。"

@@ -12,12 +12,18 @@ logger = logging.getLogger(__name__)
 # -----------------------
 # 定義輸出格式
 # -----------------------
+class WeightCalculationInput(BaseModel):
+    llm_label: str = Field(description="fact_check_agent的分類標籤")
+    slm_score: float = Field(description="bert_classifier_agent真新聞機率")
+    jury_score: float = Field(description="Jury_agent的判斷分數-Jury_score")
+
 class WeightCalculationOutput(BaseModel):
     llm_label: str = Field(description="LLM分類標籤")
     llm_score: float = Field(description="LLM標籤對應分數")
     slm_score: float = Field(description="SLM真新聞機率")
+    jury_score: float = Field(description="Jury的判斷分數")
     final_score: float = Field(description="最終加權分數")
-    weights: dict = Field(description="使用的權重")
+
 
 # -----------------------
 # 權重計算函數
@@ -47,19 +53,22 @@ def calculate_weighted_score(state_data: str = "") -> dict:
         # 權重設定
         llm_weight = 0.6
         slm_weight = 0.4
-        
+        jury_weight = 0.1
         # 嘗試解析傳入的 state 數據
         try:
             if state_data and state_data.strip():
                 parsed_state = json.loads(state_data)
                 llm_result = parsed_state.get("fact_check_result_json")
                 slm_result = parsed_state.get("classification_json")
+                jury_result = parsed_state.get("Juryscore_json")
             else:
                 llm_result = None
                 slm_result = None
+                jury_result = None
         except json.JSONDecodeError:
             llm_result = None
             slm_result = None
+            jury_result = None
         
         # 如果沒有從參數取得，使用預設範例（你需要替換為實際的 state key）
         """if llm_result is None:
@@ -82,23 +91,35 @@ def calculate_weighted_score(state_data: str = "") -> dict:
             slm_data = json.loads(slm_result)
         else:
             slm_data = slm_result
+
+        if isinstance(jury_result, str):
+            jury_data = json.loads(jury_result)
+        else:
+            jury_data = jury_result
         
         # 轉換 LLM 標籤為分數
         llm_label = llm_data.get("classification", "完全錯誤")
-        llm_score = label_to_score.get(llm_label, 0.0)
+        llm_score = label_to_score.get(llm_label)
         
         # 取得 SLM 分數
-        slm_score = float(slm_data.get("bert_classifier", 0.0))
+        slm_score = float(slm_data.get("Probability"))
+
+        # 取得 Jury 分數
+        jury_score = float(jury_data.get("judge_score"))
         
         # 計算最終加權分數：(標籤分數*LLM權重 + SLM分數*SLM權重) / (LLM權重 + SLM權重)
-        final_score = (llm_score * llm_weight + slm_score * slm_weight) / (llm_weight + slm_weight)
+        if jury_score > 0:
+            final_score = ((llm_score * llm_weight + slm_score * slm_weight ) / (llm_weight + slm_weight )) * (1 + jury_weight)
+        else:
+            final_score = (llm_score * llm_weight + slm_score * slm_weight) / (llm_weight + slm_weight) * (1 - jury_weight) 
         
         result = {
             "llm_label": llm_label,
             "llm_score": llm_score,
             "slm_score": slm_score,
+            "jury_score": jury_score,
             "final_score": round(final_score, 4),
-            "weights": {"llm": llm_weight, "slm": slm_weight}
+
         }
         
         logger.info(f"權重計算完成: 最終分數 {final_score:.4f}")
@@ -111,7 +132,6 @@ def calculate_weighted_score(state_data: str = "") -> dict:
             "llm_score": 0.0,
             "slm_score": 0.0,
             "final_score": 0.0,
-            "weights": {"llm": 0.6, "slm": 0.4},
             "error": str(e)
         }
 
@@ -120,20 +140,24 @@ def calculate_weighted_score(state_data: str = "") -> dict:
 # -----------------------
 weight_processor_agent = LlmAgent(
     name="weight_processor",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""你是一個權重計算處理助手。你需要：
 
-1. 從當前 conversation 的 state 中取得其他 agent 的結果
-2. 將 LLM agent 的分類結果和 SLM agent 的分數結果傳給 calculate_weighted_score 函數
-3. 調用該函數來計算加權分數
+        SLM的結果為 state['classification_json']
+        LLM的結果為 state['fact_check_result_json']
+        Jury的結果為 state['Juryscore_json']
 
-SLM的結果為 state['classification_json']
-LLM的結果為 state['fact_check_result_json']
-請按以下格式調用函數，將 state 中的相關數據作為參數傳入：
-- 如果能直接訪問 state，請將 LLM 和 SLM 的結果組織成 JSON 字符串傳入
-- 函數會自動處理標籤轉分數和權重計算
+        1. 從當前 conversation 的 state 中取得其他 agent 的結果
+        2. 將 SLM 的分類結果、 LLM 的分數結果和Jury 的判斷結果分數傳給 calculate_weighted_score 函數
+        3. 調用該函數來計算加權分數
 
-現在請調用 calculate_weighted_score 函數。""",
+        
+        請按以下格式調用函數，將 state 中的相關數據作為參數傳入：
+        - 如果能直接訪問 state，請將 LLM 、 SLM 、jury的結果組織成 JSON 字符串傳入
+        - 函數會自動處理標籤轉分數和權重計算，如果缺失值請再調用一次，且不要把不同state 資訊亂合併
+
+        現在請調用 calculate_weighted_score 函數。""",
+    input_schema=WeightCalculationInput,
     tools=[calculate_weighted_score],
     output_key="weight_calculation_result"
 )
