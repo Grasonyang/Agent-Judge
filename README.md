@@ -3,7 +3,7 @@
 </p>
 
 # Agent-Judge
-slm模型雲端網址 : https://drive.google.com/file/d/1LEOaPAvhUUrx41StffNnG6OUN4ba_Vuy/view?usp=sharing  /n
+slm模型雲端網址 : https://drive.google.com/file/d/1LEOaPAvhUUrx41StffNnG6OUN4ba_Vuy/view?usp=sharing  \n
 本專案為多代理辯論系統，目標在於對假新聞進行可觀察、可審計與可復現的分析，透過多角色協作產出結構化報告。
 
 ## 安裝
