@@ -8,6 +8,7 @@ from transformers import BertForSequenceClassification, BertTokenizerFast
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 # 配置日誌
 logging.basicConfig(level=logging.INFO)
@@ -205,15 +206,44 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model_name = "bert-base-chinese"
 
 try:
-    model_name_test = "bert-base-chinese"
-    tokenizer_test = BertTokenizerFast.from_pretrained(r"D:\Agent-Judge-slm\judge\agents\classifier\bert_fake_news_model")
-    model_test = BertForSequenceClassification.from_pretrained(r"D:\Agent-Judge-slm\judge\agents\classifier\bert_fake_news_model").to(device)
-    model_test.eval()  # 設定為評估模式
+    # 支援透過環境變數跳過模型載入（例如開發或 CI 時避免網路下載）
+    if os.environ.get("AGENT_JUDGE_SKIP_MODEL_LOAD") == "1":
+        logger.info("環境變數 AGENT_JUDGE_SKIP_MODEL_LOAD=1，跳過模型與 tokenizer 載入")
+        tokenizer_test = None
+        model_test = None
+        id2label = {0: "真", 1: "假"}
+    else:
+        model_name_test = "bert-base-chinese"
+        from pathlib import Path
 
-    id2label = {0: "真", 1: "假"}
-    
+        # 嘗試在多個相對位置尋找本地模型目錄
+        this_dir = Path(__file__).resolve().parent
+        local_model_dir = this_dir / "bert_fake_news_model"
+        repo_model_dir = Path.cwd() / "judge" / "agents" / "classifier" / "bert_fake_news_model"
+
+        chosen_model_dir = None
+        if local_model_dir.exists():
+            chosen_model_dir = local_model_dir
+            logger.info(f"使用本地模型目錄: {local_model_dir}")
+        elif repo_model_dir.exists():
+            chosen_model_dir = repo_model_dir
+            logger.info(f"使用 repo 相對模型目錄: {repo_model_dir}")
+        else:
+            logger.warning("找不到本地 bert_fake_news_model 目錄，將使用預設模型名稱從 HuggingFace 下載/載入。")
+
+        if chosen_model_dir is not None:
+            tokenizer_test = BertTokenizerFast.from_pretrained(str(chosen_model_dir))
+            model_test = BertForSequenceClassification.from_pretrained(str(chosen_model_dir)).to(device)
+        else:
+            tokenizer_test = BertTokenizerFast.from_pretrained(model_name_test)
+            model_test = BertForSequenceClassification.from_pretrained(model_name_test).to(device)
+
+        model_test.eval()  # 設定為評估模式
+
+        id2label = {0: "真", 1: "假"}
+
     logger.info("BERT 模型載入成功")
-    
+
 except Exception as e:
     logger.error(f"模型載入失敗: {e}")
     raise
@@ -233,6 +263,16 @@ def classify_text(text: str) -> dict:
     """
     logger.info(f"開始分類文本: {text[:50]}...")
     
+    # 當模型或 tokenizer 未載入時，回傳明確錯誤資訊（便於開發/測試環境）
+    if tokenizer_test is None or model_test is None:
+        logger.warning("tokenizer_test 或 model_test 未載入，請設定模型路徑或移除 AGENT_JUDGE_SKIP_MODEL_LOAD 環境變數。")
+        return {
+            "label": "未知",
+            "Probability": 0.0,
+            "input_text": text,
+            "error": "模型或 tokenizer 未載入"
+        }
+
     try:
         with torch.no_grad():
             encoding = tokenizer_test(
@@ -259,7 +299,7 @@ def classify_text(text: str) -> dict:
 
         result = {
             "label": pred_label_text,
-            "scoProbabilityre": prob_label0,
+            "Probability": prob_label0,
             "input_text": text
         }
         
