@@ -69,11 +69,16 @@ def _pretty_after(agent_context=None, **_):
         msg = str(out)
     return Event(author="synthesizer", actions=EventActions(message=msg))
 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+_utc_today   = datetime.now(timezone.utc).date().isoformat()
+_local_today = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
 
 synthesizer_agent = LlmAgent(
     name="synthesizer",
     model="gemini-2.5-flash",
     instruction=(
+        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。\n\n"
         "你是『知識整合者（Synthesizer）』。根據下列輸入生成最終報告的嚴格 JSON。\n\n"
         "【輸入】\n"
         "- CURATION(JSON): {curation}\n"

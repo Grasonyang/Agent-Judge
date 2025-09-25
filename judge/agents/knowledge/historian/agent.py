@@ -20,10 +20,16 @@ class HistorianOutput(BaseModel):
     promotion_patterns: List[PromotionPattern]
 
 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+_utc_today   = datetime.now(timezone.utc).date().isoformat()
+_local_today = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
+
 historian_llm_agent = LlmAgent(
     name="historian_schema_agent",
     model="gemini-2.5-flash",
     instruction=(
+        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。\n\n"
         "你是『歷史學者（Historian）』。\n"
         "以下提供 Curator 的整理結果 JSON：{curation}\n"
         "1) 根據資料建立重要事件時間軸。\n"

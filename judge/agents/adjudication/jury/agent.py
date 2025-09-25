@@ -64,10 +64,16 @@ def _build_jury_after():
 
 jury_pretty_after = _build_jury_after()
 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+_utc_today   = datetime.now(timezone.utc).date().isoformat()
+_local_today = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
+
 jury_agent = LlmAgent(
     name="jury",
     model="gemini-2.5-flash",
     instruction=(
+        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。\n\n"
         "你是陪審團，請根據完整辯論紀錄與證據，進行客觀量化評分並給出裁決。\n\n"
         "【輸入】\n"
         "CURATION(JSON): {curation}\n"

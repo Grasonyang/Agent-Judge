@@ -19,12 +19,17 @@ from .tools import (
 )
 from judge.agents.social.noise.agent import social_noise_agent
 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+_utc_today   = datetime.now(timezone.utc).date().isoformat()
+_local_today = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
 
 # --- Step 1: decision agent (schema-only) ---
 decision_agent = LlmAgent(
     name="moderator_decider",
     model="gemini-2.5-flash",
     instruction=(
+        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。\n\n"
         "你是主持人的決策模組。目標：在維持秩序、避免重複論點、推進爭點澄清的前提下，"
         "輸出一個 NextTurnDecision JSON（next_speaker: 'advocate'|'skeptic'|'devil'|'end'）以及簡短 rationale。\n"
         "輸入：\n- CURATION: {curation}\n- SOCIAL_NOISE: {social_noise}\n- MESSAGES(JSON array): (the current debate messages stored in state['debate_messages'])\n\n"
