@@ -70,21 +70,13 @@ def bind_session(session: Session) -> None:
         log_tool_output, append_event=append_event_fn
     )
 
-from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
-_utc_today   = datetime.now(timezone.utc).date().isoformat()
-_local_today = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
-
 # =============== Root Pipeline ===============
 # 固定順序：Curator → Historian → 主持人回合制（正/反/極端）→ Social → Evidence → Jury → Synthesizer(JSON)
 
 init_session = LlmAgent(
     name="init_session",
     model="gemini-2.5-flash",
-    instruction=(
-        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。"
-        "初始化 session，此代理僅用於在執行前設定 state，僅複述一次使用者輸入，不要做任何多餘回覆。"
-    ),
+    instruction=("初始化 session，此代理僅用於在執行前設定 state，僅複述一次使用者輸入，不要做任何多餘回覆。"),
     before_agent_callback=_before_init_session,
     output_key="_init_session",
 )
