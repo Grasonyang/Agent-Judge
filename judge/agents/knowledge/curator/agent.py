@@ -43,11 +43,16 @@ class CuratorOutput(BaseModel):
     query: str
     results: List[SearchResult]
 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+_utc_today   = datetime.now(timezone.utc).date().isoformat()
+_local_today = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
 
 curator_tool_agent = LlmAgent(
     name="curator_tool_runner",
     model="gemini-2.5-flash",
     instruction=(
+        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。"
         "你是 Curator 的工具執行者：使用 GoogleSearchTool 來取得原始搜尋結果，"
         "請把原始結果（未经 schema 驗證的 JSON）存入 state['curation_raw']。"
     ),
@@ -60,6 +65,7 @@ curator_schema_agent = LlmAgent(
     name="curator_schema_validator",
     model="gemini-2.5-flash",
     instruction=(
+        f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。"
         "你負責把 state['curation_raw'] 轉為符合 CuratorOutput schema 的 JSON，"
         "僅輸出最終的 JSON（不要多餘文字）。"
     ),
