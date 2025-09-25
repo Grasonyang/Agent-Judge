@@ -83,7 +83,7 @@ init_session = LlmAgent(
     model="gemini-2.5-flash",
     instruction=(
         f"今天的日期是 {_local_today}（台北時間），UTC 日期是 {_utc_today}。"
-        "初始化 session（此代理僅用於在執行前設定 state，無需輸出）。"
+        "初始化 session，此代理僅用於在執行前設定 state，僅複述一次使用者輸入，不要做任何多餘回覆。"
     ),
     before_agent_callback=_before_init_session,
     output_key="_init_session",
