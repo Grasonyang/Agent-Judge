@@ -339,6 +339,7 @@ class Finding(BaseModel):
 
 class JuryOutput(BaseModel):
     verdict: str = Field(description="簡短結論：如 '正方較有說服力' 或 '證據不足'")
+    verdict_result: str = Field(description="清楚說明哪一方比較強，回答'正方'或'反方'，回答這兩個的其中一個")
     scores: ScoreDetail
     strengths: List[Finding] = Field(description="哪一方強在哪裡（2~5 條）")
     weaknesses: List[Finding] = Field(description="主要缺陷或風險（2~5 條）")
@@ -347,7 +348,7 @@ class JuryOutput(BaseModel):
 
 class JuryOutputfinal(BaseModel):
     verdict: str = Field(description="簡短結論：如 '正方較有說服力' 或 '證據不足'")
-    scores: ScoreDetail
+    verdict_result: str = Field(description="清楚說明哪一方比較強，回答'正方'或'反方'，回答這兩個的其中一個")
     judge_score: str = Field(description="最終分數，範圍從 -1 (拜速) 到 +1 (勝訴)")
 
 def _ensure_and_flatten_fallacies(callback_context=None, **_):
@@ -443,7 +444,7 @@ text_check_schema_agent = LlmAgent(
     disallow_transfer_to_parent=True,
     disallow_transfer_to_peers=True,
     output_key="JuryOutputfinal_json",
-    generate_content_config=types.GenerateContentConfig(temperature=0.4),
+    generate_content_config=types.GenerateContentConfig(temperature=0.1),
 )
 
 jury_agent = SequentialAgent(

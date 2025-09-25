@@ -8,7 +8,6 @@ from transformers import BertForSequenceClassification, BertTokenizerFast
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import os
 
 # 配置日誌
 logging.basicConfig(level=logging.INFO)
@@ -17,10 +16,7 @@ logger = logging.getLogger(__name__)
 # -----------------------
 # 定義輸出格式
 # -----------------------
-class WeightCalculationInput(BaseModel):
-    llm_label: str = Field(description="fact_check_agent的分類標籤")
-    slm_score: float = Field(description="bert_classifier_agent真新聞機率")
-    jury_score: float = Field(description="Jury_agent的判斷分數-Jury_score")
+
 
 class WeightCalculationOutput(BaseModel):
     llm_label: str = Field(description="LLM分類標籤")
@@ -28,22 +24,13 @@ class WeightCalculationOutput(BaseModel):
     slm_score: float = Field(description="SLM真新聞機率")
     jury_score: float = Field(description="Jury的判斷分數")
     final_score: float = Field(description="最終加權分數")
-
-# -----------------------
-# 權重計算函數
-# -----------------------
 def calculate_weighted_score(state_data: str = "") -> dict:
     """
     從 state 中取得其他 agent 的結果並計算權重分數
-    
-    Args:
-        state_data: 包含 state 信息的字符串（通常由 LlmAgent 傳入）
-        
-    Returns:
-        包含權重計算結果的字典
+    （移除所有預設值，抓不到資料就直接拋錯）
     """
     logger.info("開始權重計算...")
-    
+
     try:
         # 標籤轉分數映射
         label_to_score = {
@@ -53,131 +40,84 @@ def calculate_weighted_score(state_data: str = "") -> dict:
             "部分正確": 0.75,
             "完全正確": 1.0
         }
-        
+
         # 權重設定
         llm_weight = 0.6
         slm_weight = 0.4
         jury_weight = 0.1
-        
+
         # 嘗試解析傳入的 state 數據
-        try:
-            if state_data and state_data.strip():
-                parsed_state = json.loads(state_data)
-                llm_result = parsed_state.get("fact_check_result_json")
-                slm_result = parsed_state.get("classification_json")
-                # 修正：正確獲取 jury 結果
-                jury_result = parsed_state.get("JuryOutputfinal_json")
-                
-                logger.info(f"解析的 state 數據鍵值: {list(parsed_state.keys())}")
-                logger.info(f"Jury 結果: {jury_result}")
-                
-            else:
-                logger.warning("未提供有效的 state_data")
-                llm_result = None
-                slm_result = None
-                jury_result = None
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON 解析錯誤: {e}")
-            llm_result = None
-            slm_result = None
-            jury_result = None
-        
-        # 解析結果 - 添加更嚴格的 None 檢查
-        if llm_result is not None:
-            if isinstance(llm_result, str):
-                try:
-                    llm_data = json.loads(llm_result)
-                except json.JSONDecodeError:
-                    logger.warning("LLM 結果 JSON 解析失敗，使用預設值")
-                    llm_data = {"classification": "無法判斷"}
-            elif isinstance(llm_result, dict):
-                llm_data = llm_result
-            else:
-                logger.warning(f"LLM 結果格式異常: {type(llm_result)}")
-                llm_data = {"classification": "無法判斷"}
-        else:
-            logger.warning("未找到 LLM 結果，使用預設值")
-            llm_data = {"classification": "無法判斷"}
-            
-        if slm_result is not None:
-            if isinstance(slm_result, str):
-                try:
-                    slm_data = json.loads(slm_result)
-                except json.JSONDecodeError:
-                    logger.warning("SLM 結果 JSON 解析失敗，使用預設值")
-                    slm_data = {"Probability": 0.5}
-            elif isinstance(slm_result, dict):
-                slm_data = slm_result
-            else:
-                logger.warning(f"SLM 結果格式異常: {type(slm_result)}")
-                slm_data = {"Probability": 0.5}
-        else:
-            logger.warning("未找到 SLM 結果，使用預設值")
-            slm_data = {"Probability": 0.5}
+        if not state_data or not state_data.strip():
+            raise ValueError("未提供有效的 state_data")
 
-        if jury_result is not None:
-            if isinstance(jury_result, str):
-                try:
-                    jury_data = json.loads(jury_result)
-                except json.JSONDecodeError:
-                    logger.warning("Jury 結果 JSON 解析失敗，使用預設值")
-                    jury_data = {"judge_score": "0.0"}
-            elif isinstance(jury_result, dict):
-                jury_data = jury_result
-            else:
-                logger.warning(f"Jury 結果格式異常: {type(jury_result)}")
-                jury_data = {"judge_score": "0.0"}
-        else:
-            logger.warning("未找到 Jury 結果，使用預設值")
-            jury_data = {"judge_score": "0.0"}
-        
-        # 轉換 LLM 標籤為分數 - 添加安全檢查
-        llm_label = llm_data.get("classification", "無法判斷") if isinstance(llm_data, dict) else "無法判斷"
-        llm_score = label_to_score.get(llm_label, 0.5)
-        
-        # 取得 SLM 分數 - 添加安全檢查
-        if isinstance(slm_data, dict):
-            slm_prob = slm_data.get("Probability", 0.5)
-        else:
-            slm_prob = 0.5
-            
-        try:
-            slm_score = float(slm_prob)
-        except (ValueError, TypeError):
-            logger.warning(f"SLM 分數轉換失敗: {slm_prob}，使用預設值 0.5")
-            slm_score = 0.5
+        parsed_state = json.loads(state_data)
 
-        # 修正：正確取得 Jury 分數 - 添加安全檢查
-        if isinstance(jury_data, dict):
-            jury_score_raw = jury_data.get("judge_score", "0.0")
+        # 嘗試取出結果
+        llm_result = (
+            parsed_state.get("fact_check_result_json")
+            or parsed_state.get("LLM_output")
+        )
+        slm_result = (
+            parsed_state.get("classification_json")
+            or parsed_state.get("SLM_output")
+        )
+        jury_result = (
+            parsed_state.get("JuryOutputfinal_json")
+            or parsed_state.get("Jury_output")
+        )
+
+        if llm_result is None:
+            raise ValueError("未找到 LLM 結果")
+        if slm_result is None:
+            raise ValueError("未找到 SLM 結果")
+        if jury_result is None:
+            raise ValueError("未找到 Jury 結果")
+
+        # 解析 LLM
+        if isinstance(llm_result, str):
+            llm_data = json.loads(llm_result)
+        elif isinstance(llm_result, dict):
+            llm_data = llm_result
         else:
-            jury_score_raw = "0.0"
-            
-        try:
-            if isinstance(jury_score_raw, str):
-                jury_score = float(jury_score_raw)
-            else:
-                jury_score = float(jury_score_raw)
-        except (ValueError, TypeError):
-            logger.warning(f"Jury 分數轉換失敗: {jury_score_raw}，使用預設值 0.0")
-            jury_score = 0.0
-        
+            raise TypeError(f"LLM 結果格式異常: {type(llm_result)}")
+
+        llm_label = llm_data["classification"]
+        llm_score = label_to_score[llm_label]
+
+        # 解析 SLM
+        if isinstance(slm_result, str):
+            slm_data = json.loads(slm_result)
+        elif isinstance(slm_result, dict):
+            slm_data = slm_result
+        else:
+            raise TypeError(f"SLM 結果格式異常: {type(slm_result)}")
+
+        slm_score = float(slm_data["Probability"])
+
+        # 解析 Jury
+        if isinstance(jury_result, str):
+            jury_data = json.loads(jury_result)
+        elif isinstance(jury_result, dict):
+            jury_data = jury_result
+        else:
+            raise TypeError(f"Jury 結果格式異常: {type(jury_result)}")
+
+        jury_score = float(jury_data["judge_score"])
+
         logger.info(f"提取的分數 - LLM: {llm_score}, SLM: {slm_score}, Jury: {jury_score}")
-        
-        # 計算最終加權分數：(標籤分數*LLM權重 + SLM分數*SLM權重) / (LLM權重 + SLM權重)
+
+        # 計算最終分數
         base_score = (llm_score * llm_weight + slm_score * slm_weight) / (llm_weight + slm_weight)
-        
-        # 根據 jury_score 調整最終分數
+
         if jury_score > 0:
             final_score = base_score * (1 + jury_weight)
         elif jury_score < 0:
             final_score = base_score * (1 - jury_weight)
         else:
             final_score = base_score
-        
-        # 確保分數在 0-1 範圍內
+
         final_score = max(0.0, min(1.0, final_score))
-        
+
         result = {
             "llm_label": llm_label,
             "llm_score": llm_score,
@@ -185,135 +125,21 @@ def calculate_weighted_score(state_data: str = "") -> dict:
             "jury_score": jury_score,
             "final_score": round(final_score, 4),
         }
-        
+
         logger.info(f"權重計算完成: 最終分數 {final_score:.4f}")
         return result
-        
+
     except Exception as e:
         logger.error(f"權重計算過程中發生錯誤: {e}")
         return {
-            "llm_label": "錯誤",
-            "llm_score": 0.0,
-            "slm_score": 0.0,
-            "jury_score": 0.0,
-            "final_score": 0.0,
-            "error": str(e)
-        }
-# -----------------------
-# 初始化模型部分
-# -----------------------
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_name = "bert-base-chinese"
-
-try:
-    # 支援透過環境變數跳過模型載入（例如開發或 CI 時避免網路下載）
-    if os.environ.get("AGENT_JUDGE_SKIP_MODEL_LOAD") == "1":
-        logger.info("環境變數 AGENT_JUDGE_SKIP_MODEL_LOAD=1，跳過模型與 tokenizer 載入")
-        tokenizer_test = None
-        model_test = None
-        id2label = {0: "真", 1: "假"}
-    else:
-        model_name_test = "bert-base-chinese"
-        from pathlib import Path
-
-        # 嘗試在多個相對位置尋找本地模型目錄
-        this_dir = Path(__file__).resolve().parent
-        local_model_dir = this_dir / "bert_fake_news_model"
-        repo_model_dir = Path.cwd() / "judge" / "agents" / "classifier" / "bert_fake_news_model"
-
-        chosen_model_dir = None
-        if local_model_dir.exists():
-            chosen_model_dir = local_model_dir
-            logger.info(f"使用本地模型目錄: {local_model_dir}")
-        elif repo_model_dir.exists():
-            chosen_model_dir = repo_model_dir
-            logger.info(f"使用 repo 相對模型目錄: {repo_model_dir}")
-        else:
-            logger.warning("找不到本地 bert_fake_news_model 目錄，將使用預設模型名稱從 HuggingFace 下載/載入。")
-
-        if chosen_model_dir is not None:
-            tokenizer_test = BertTokenizerFast.from_pretrained(str(chosen_model_dir))
-            model_test = BertForSequenceClassification.from_pretrained(str(chosen_model_dir)).to(device)
-        else:
-            tokenizer_test = BertTokenizerFast.from_pretrained(model_name_test)
-            model_test = BertForSequenceClassification.from_pretrained(model_name_test).to(device)
-
-        model_test.eval()  # 設定為評估模式
-
-        id2label = {0: "真", 1: "假"}
-
-    logger.info("BERT 模型載入成功")
-
-except Exception as e:
-    logger.error(f"模型載入失敗: {e}")
-    raise
-
-# -----------------------
-# 定義分類函數作為工具
-# -----------------------
-def classify_text(text: str) -> dict:
-    """
-    使用 BERT 模型分類文本真假
-    
-    Args:
-        text: 要分類的文本
-        
-    Returns:
-        包含分類結果的字典
-    """
-    logger.info(f"開始分類文本: {text[:50]}...")
-    
-    # 當模型或 tokenizer 未載入時，回傳明確錯誤資訊（便於開發/測試環境）
-    if tokenizer_test is None or model_test is None:
-        logger.warning("tokenizer_test 或 model_test 未載入，請設定模型路徑或移除 AGENT_JUDGE_SKIP_MODEL_LOAD 環境變數。")
-        return {
-            "label": "未知",
-            "Probability": 0.0,
-            "input_text": text,
-            "error": "模型或 tokenizer 未載入"
+            "error": str(e),
+            "llm_label": None,
+            "llm_score": None,
+            "slm_score": None,
+            "jury_score": None,
+            "final_score": None,
         }
 
-    try:
-        with torch.no_grad():
-            encoding = tokenizer_test(
-                        text,
-                        padding="max_length",
-                        truncation=True,
-                        max_length=512,
-                        return_tensors="pt"
-                    ).to(device)
-
-            # 丟進模型
-            outputs = model_test(**encoding)
-
-            # softmax 機率
-            probs = torch.softmax(outputs.logits, dim=1).cpu().numpy()[0]
-
-            # 模型預測標籤 (0=真新聞, 1=假新聞)
-            pred_label = probs.argmax()
-
-            # 只取 label=0 (真新聞) 的機率
-            prob_label0 = probs[0].item()
-            pred_label_text = id2label.get(pred_label, str(pred_label))
-
-
-        result = {
-            "label": pred_label_text,
-            "Probability": prob_label0,
-            "input_text": text
-        }
-        
-        logger.info(f"分類完成: {pred_label_text} (confidence: {prob_label0:.3f})")
-        return result
-        
-    except Exception as e:
-        logger.error(f"分類過程中發生錯誤: {e}")
-        return {
-            "label": "錯誤",
-            "Probability": 0.0,
-            "input_text": text,
-            "error": str(e)
-        }
 
 
 # -----------------------
@@ -337,13 +163,18 @@ weight_processor_agent = LlmAgent(
 
                     請特別注意：
                     - Jury 的最終輸出鍵值是 'JuryOutputfinal_json'
-                    - JuryOutputfinal_json 中該包含 'judge_score' 欄位
+                    - JuryOutputfinal_json 中該包含 'judge_score' 欄位，且應該是介於-1 ~ 1 之間
                     - SLM 的最終輸出鍵值是 'classification_json'
                     - classification_json 中該包含 'Probability' 欄位
+                    - LLM 的最終輸出鍵值是 'fact_check_result_json'
+                    - fact_check_result_json 中該包含 'classification' 欄位
                     - 不要混淆不同的 state 資訊
+                    - 且一定要呼叫工具來做權重計算
+
 
         現在請調用 calculate_weighted_score 函數。""",
     tools=[calculate_weighted_score],
+    generate_content_config=types.GenerateContentConfig(temperature=0.0),
     output_key="weight_calculation_result"
 )
 
