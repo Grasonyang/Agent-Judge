@@ -22,7 +22,7 @@ from judge.agents.moderator.tools import log_tool_output
 
 from judge.agents.social.agent import social_summary_agent
 from judge.agents.social.noise.agent import social_noise_agent
-from judge.agents.llm.agent import fact_check_agent
+
 from judge.agents.classifier.agent import classifier_agent
 from judge.agents.weight.agent import weight_agent
 from judge.agents.debatelog.agent import debate_agent
@@ -80,21 +80,6 @@ def bind_session(session: Session) -> None:
             append_event=append_event_fn
         )
 
-# 建立一個包裝 Agent,在執行前先調用動態查核
-llm_wrapper_agent = LlmAgent(
-    name="llm_wrapper",
-    model="gemini-2.5-flash",
-    instruction=(
-        "你是 LLM 層的協調者。\n"
-        "state 中已經包含了假新聞查核的結果:\n"
-        "- text_classification: 新聞類別\n"
-        "- fact_check_result: 查核結果\n"
-        "- fact_check_result_json: 格式化的查核結果\n\n"
-        "請確認這些結果已正確儲存到 state 中。"
-    ),
-    output_key="llm_layer_status",
-    generate_content_config=types.GenerateContentConfig(temperature=0.0),
-)
 
 
 # 建立自訂的 before_callback,在執行前先執行動態查核
@@ -122,9 +107,24 @@ async def _before_llm_layer(agent_context=None, **_):
     
     return None
 
+# 建立一個包裝 Agent,在執行前先調用動態查核
+llm_wrapper_agent = LlmAgent(
+    name="llm_wrapper",
+    model="gemini-2.5-flash",
+    instruction=(
+        "你是 LLM 層的協調者。\n"
+        "state 中已經包含了假新聞查核的結果:\n"
+        "- text_classification: 新聞類別\n"
+        "- fact_check_result: 查核結果\n"
+        "- fact_check_result_json: 格式化的查核結果\n\n"
+        "請確認這些結果已正確儲存到 state 中。"
+    ),
+    output_key="llm_layer_status",
+    before_agent_callback = _before_llm_layer,
+    generate_content_config=types.GenerateContentConfig(temperature=0.0),
+)
 
-# 設置 before_callback
-llm_wrapper_agent.before_agent_callback = _before_llm_layer
+
 
 # =============== Root Pipeline ===============
 # 固定順序：Curator → Historian → 主持人回合制（正/反/極端）→ Social → Evidence → Jury → Synthesizer(JSON)
@@ -141,11 +141,12 @@ init_session = LlmAgent(
     output_key="_init_session",
 )
 
+
 root_agent = SequentialAgent(
     name="root_pipeline",
     sub_agents=[
         init_session,
-        llm_wrapper_agent,
+        dynamic_fact_check,
     ],
 )
 

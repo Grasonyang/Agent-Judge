@@ -159,7 +159,7 @@ CATEGORY_PROMPTS = {
 # -------- Step 1: 文本分類 Agent (純 LLM,無 tools) --------
 classification_agent = LlmAgent(
     name="text_classification",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "你是文本分類器。根據以下新聞文本,判斷其所屬類別。\n\n"
         "待分類文本: {_init_session}\n\n"
@@ -182,7 +182,7 @@ def _create_category_check_agent(category: str, prompt: str) -> LlmAgent:
     """根據類別和 prompt 建立查核 Agent"""
     return LlmAgent(
         name=f"fact_check_{category}",
-        model="gemini-2.5-flash",
+        model="gemini-2.0-flash",
         instruction=prompt,
         tools=[GoogleSearchTool()],
         output_key="fact_check_result",
@@ -202,7 +202,7 @@ category_agents["default"] = _create_category_check_agent("default", CATEGORY_PR
 # -------- Step 3: Schema 驗證 Agent (純 LLM,無 tools) --------
 schema_validator_agent = LlmAgent(
     name="fact_check_schema_validator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "你是 Schema 驗證器。\n\n"
         "識別的新聞類別: {text_classification}\n"
@@ -258,7 +258,8 @@ class DynamicFactCheckAgent(LlmAgent):
         
         # Step 1: 分類
         print("📊 [步驟1/3] 正在分類新聞類別...")
-        classification_result = await self.classification_agent.run_async(news_text)
+        # 修正: 傳遞 agent_context
+        classification_result = await self.classification_agent.run_async(news_text, agent_context) 
         category = classification_result.get("text_classification", "default").strip()
         print(f"✅ 分類結果: {category}\n")
         
@@ -270,7 +271,8 @@ class DynamicFactCheckAgent(LlmAgent):
         print(f"🔍 [步驟2/3] 使用 {category} 類別專屬策略進行查核...\n")
         selected_agent = self.category_agents.get(category, self.category_agents["default"])
         
-        fact_check_result = await selected_agent.run_async(news_text)
+        # 關鍵修正: 傳遞 agent_context 以確保 GoogleSearchTool 能夠正確執行
+        fact_check_result = await selected_agent.run_async(news_text, agent_context) 
         fact_check_text = fact_check_result.get("fact_check_result", "查核失敗")
         print("✅ 查核完成\n")
         
@@ -280,8 +282,10 @@ class DynamicFactCheckAgent(LlmAgent):
         
         # Step 3: 格式化輸出
         print("📄 [步驟3/3] 正在格式化輸出...\n")
+        # 修正: 傳遞 agent_context
         formatted_result = await self.schema_agent.run_async(
-            f"分類: {category}\n查核結果: {fact_check_text}"
+            f"分類: {category}\n查核結果: {fact_check_text}",
+            agent_context 
         )
         final_output = formatted_result.get("fact_check_result_json", "")
         
@@ -298,21 +302,13 @@ class DynamicFactCheckAgent(LlmAgent):
         }
 
 
-# -------- 建立用於 Judge 系統的 Sequential Pipeline --------
-# 這個是給 ADK 使用的
-fact_check_agent = SequentialAgent(
-    name="fact_check_pipeline",
-    sub_agents=[
-        classification_agent,      # Step 1: 純 LLM 分類(無 tools)
-        # 注意: 我們不在這裡放 category agents,因為要避免 tools 問題
-        # 而是在 DynamicFactCheckAgent 中用 Python 邏輯處理
-    ],
-)
+
 
 
 __all__ = [
-    "fact_check_agent",
+
     "DynamicFactCheckAgent",
     "FactCheckOutput",
     "category_agents",
+    "classification_agent",
 ]
