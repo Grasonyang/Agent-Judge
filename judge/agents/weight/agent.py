@@ -148,13 +148,12 @@ def calculate_weighted_score(state_data: str = "") -> dict:
         }
 
 
-
 # -----------------------
 # 使用 LlmAgent 來處理權重計算
 # -----------------------
 weight_processor_agent = LlmAgent(
     name="weight_processor",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction="""你是一個權重計算處理助手。你需要：
             從當前 conversation 的 state 中取得：
                     - SLM的結果為 state['classification_json'] (注意：是 classification_json，不是其他名稱)
@@ -188,7 +187,7 @@ weight_processor_agent = LlmAgent(
 # Schema 格式化 agent
 weight_schema_agent = LlmAgent(
     name="weight_schema_validator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "你負責把 state['weight_calculation_result'] 轉為符合 WeightCalculationOutput schema 的 JSON。"
         "確保所有數值格式正確，分數保留 4 位小數。"
