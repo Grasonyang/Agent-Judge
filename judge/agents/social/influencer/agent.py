@@ -7,7 +7,7 @@ def create_influencer_agent(index: Optional[int] = None, output_key: Optional[st
     out_key = output_key or ("influencer" if not index else f"influencer_{index}")
     return LlmAgent(
         name=name,
-        model="gemini-2.5-flash",
+        model="gemini-2.0-flash",
         instruction="你是 Influencer，根據 Echo Chamber 的反應放大或扭轉訊息，請以精簡的方式輸出內容，減少無謂詞語輸出。",
         output_key=out_key,
     )

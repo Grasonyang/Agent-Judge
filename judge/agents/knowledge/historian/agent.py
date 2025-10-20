@@ -22,7 +22,7 @@ class HistorianOutput(BaseModel):
 
 historian_llm_agent = LlmAgent(
     name="historian_schema_agent",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "你是『歷史學者（Historian）』。\n"
         "以下提供 Curator 的整理結果 JSON：{curation}\n"

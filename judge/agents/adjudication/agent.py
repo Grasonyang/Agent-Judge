@@ -13,7 +13,7 @@ from .synthesizer.agent import synthesizer_agent
 
 adjudication_agent = SequentialAgent(
     name="adjudication",
-    sub_agents=[ jury_agent],
+    sub_agents=[ evidence_agent, jury_agent, synthesizer_agent],
 )
 
 __all__ = ["adjudication_agent"]

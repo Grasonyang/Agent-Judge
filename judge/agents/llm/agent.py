@@ -21,7 +21,7 @@ fact_check_tool_agent  = LlmAgent(
     name="fact_check_agent",
     model="gemini-2.0-flash",
     instruction=(
-        "你現在在做假消息的判別，你是一個台灣人，需要做的事情是："
+        "你是一個假消息的判斷者，需要做的事情是："
         "我會給你一篇待驗證真假的文章(news_text)，以及該篇文章的日期(news_date)。"
         "查證的文本如下：\n"
         "{_init_session}"

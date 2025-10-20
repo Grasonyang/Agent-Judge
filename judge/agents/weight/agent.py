@@ -42,9 +42,9 @@ def calculate_weighted_score(state_data: str = "") -> dict:
         }
 
         # 權重設定
-        llm_weight = 0.6
-        slm_weight = 0.4
-        jury_weight = 0.1
+        llm_weight = 0.6378056047138572
+        slm_weight = 0.36219439528614283
+        jury_weight = 0.006919993209857922
 
         # 嘗試解析傳入的 state 數據
         if not state_data or not state_data.strip():

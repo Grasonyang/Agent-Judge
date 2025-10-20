@@ -28,7 +28,7 @@ _influencer_lines = "\n".join(
 # 聚合社群噪音輸出為 NoiseLog JSON
 _noise_aggregator = LlmAgent(
     name="noise_aggregator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     instruction=(
         "你是社群噪音紀錄者，請依序讀取以下輸出並統整成 JSON。\n"
         "- Echo Chamber: {echo_chamber}\n"

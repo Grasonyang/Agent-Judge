@@ -9,7 +9,7 @@ from google.adk.sessions.session import Session
 from google.genai import types
 
 from judge.tools.session_service import session_service
-from judge.agents.llm.agent import dynamic_fact_check  # ✅ 修正: 正確導入
+from judge.agents.llm.agent import llm_agent  # ✅ 修正: 正確導入
 
 from judge.agents.knowledge.curator import curator_agent
 from judge.agents.moderator.devil.agent import devil_agent
@@ -92,7 +92,15 @@ root_agent = SequentialAgent(
     name="root_pipeline",
     sub_agents=[
         init_session,
-        dynamic_fact_check,  # ✅ 這裡現在是有效的 BaseAgent 實例
+        curator_agent,
+        historian_agent,
+        orchestrator_agent,
+        social_summary_agent,
+        adjudication_agent,
+        llm_agent,
+        classifier_agent,
+        weight_agent
+        
     ],
 )
 

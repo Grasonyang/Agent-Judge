@@ -32,8 +32,8 @@ class RiskItem(BaseModel):
 class FinalReport(BaseModel):
     topic: str
     overall_assessment: str = Field(description="總結一句話：可信度/爭議度/建議行動")
-    jury_score: Optional[int] = Field(default=None, description="Jury total 0~100，如有")
     jury_brief: Optional[str] = Field(default=None, description="Jury 的簡短摘要")
+    jury_result: str = Field(description="哪一方論述獲勝，回答'正方'或'反方'，回答這兩個的其中一個")
     evidence_digest: List[str] = Field(description="最關鍵證據/來源 3~8 條（含網址簡述）")
     stake_summaries: List[StakeSummary] = Field(description="各方重點總結")
     key_contentions: List[Contention] = Field(description="2~4 個核心爭點")

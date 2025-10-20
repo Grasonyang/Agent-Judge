@@ -11,14 +11,6 @@ import re
 
 
 
-class ScoreDetail(BaseModel):
-    evidence_quality: int = Field(ge=0, le=30, description="證據品質 0~30")
-    logical_rigor: int = Field(ge=0, le=30, description="邏輯嚴謹性 0~30")
-    robustness: int = Field(ge=0, le=20, description="論證韌性 0~20")
-    social_impact: int = Field(ge=0, le=20, description="社會影響力 0~20")
-    total: int = Field(ge=0, le=100, description="四項加總")
-
-
 class Finding(BaseModel):
     point: str
     refs: List[str] = Field(default_factory=list, description="可附上引用的URL清單")
@@ -88,6 +80,7 @@ jury_agent = LlmAgent(
         "- 反方最終論述：state['skepticism4']\n\n"
         "【證據】\n"
         "CURATION(JSON): {curation}\n"
+        "SOCIAL_LOG(JSON): {social_log}\n\n"
         "【輸出】\n"
         "嚴格輸出 JSON，必須符合 JuryOutput schema；不要多餘文字。"
     ),
